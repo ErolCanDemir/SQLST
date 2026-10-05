@@ -1,5 +1,7 @@
 # SQLST
 
+### ⬇ [Download SQLST 0.27.0 for Windows (installer, .exe)](https://github.com/ErolCanDemir/SQLST/releases/download/v0.27.0/SQLST-Kurulum-0.27.0.exe) · [User guide (PDF)](https://github.com/ErolCanDemir/SQLST/releases/download/v0.27.0/SQLST-Kullanim-Kilavuzu-0.27.0.pdf) · [All releases](https://github.com/ErolCanDemir/SQLST/releases)
+
 **SQLST** is a lightweight, fast and safety-first database query and management tool for Windows that works with
 **SQL Server, PostgreSQL, MySQL/MariaDB, Oracle and MongoDB** from a single interface. It is built for the
 environments where SQL Server Management Studio cannot be installed or feels too heavy: it installs per user without
