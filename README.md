@@ -23,6 +23,14 @@ Get the latest installer from **[Releases](https://github.com/ErolCanDemir/SQLST
 
 **Requirements:** Windows 10/11 (64-bit). The installer is self-contained; no separate .NET installation is needed.
 
+### 🏠 With the local AI assistant
+
+Prefer **[SQLST-AI-Kurulum-0.27.0.exe](https://github.com/ErolCanDemir/SQLST/releases/download/v0.27.0/SQLST-AI-Kurulum-0.27.0.exe)**
+(~1.6 GB) if you also want the offline AI assistant. It installs SQLST together with [Ollama](https://ollama.com) and,
+during setup, downloads the **Qwen2.5-Coder 7B** model (~4.7 GB, Apache-2.0) from the official Ollama library — so an
+internet connection is needed once. After that the assistant runs fully on your machine; no API key, nothing leaves
+the computer. If the download is blocked, SQLST still installs and the AI tab shows what is missing.
+
 > The user interface and the user guide are in **Turkish**.
 
 ## Building from source
