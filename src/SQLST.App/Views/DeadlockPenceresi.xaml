@@ -1,0 +1,42 @@
+<Window x:Class="SQLST.App.Views.DeadlockPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — 🕸 Kilitlenme Şeması" Height="640" Width="900"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource PencereZeminFircasi}"
+        Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="12">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Button DockPanel.Dock="Right" Content="⬇ .xdl kaydet" Padding="10,3" Margin="8,0,0,0"
+                    Click="XdlKaydet_Click"
+                    ToolTip="Deadlock XML'ini .xdl olarak kaydeder — SSMS'te çift tıkla açılır"
+                    AutomationProperties.AutomationId="BtnXdlKaydet" />
+            <Button DockPanel.Dock="Right" Content="⧉ XML'i kopyala" Padding="10,3" Margin="8,0,0,0"
+                    Click="XmlKopyala_Click" AutomationProperties.AutomationId="BtnXdlKopyala" />
+            <TextBlock x:Name="Baslik" VerticalAlignment="Center" FontWeight="SemiBold"
+                       Foreground="{DynamicResource BilgiMetinFircasi}"
+                       AutomationProperties.AutomationId="LblDeadlockBaslik" />
+        </DockPanel>
+
+        <!-- Seçili sürecin sorgusu -->
+        <Border DockPanel.Dock="Bottom" Height="130" Margin="0,8,0,0"
+                BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" CornerRadius="3"
+                Background="{DynamicResource PanelZeminFircasi}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" x:Name="SorguBaslik" Text="Sürece tıklayın — sorgusu burada görünür"
+                           FontWeight="SemiBold" Margin="8,6,8,4"
+                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                <TextBox x:Name="Sorgu" IsReadOnly="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
+                         FontFamily="{StaticResource KodYazisi}" FontSize="12" Padding="8,0,8,8"
+                         AutomationProperties.AutomationId="TxtDeadlockSorgu" />
+            </DockPanel>
+        </Border>
+
+        <!-- Şema (çizim kod-arkasında — süreç/kaynak sayısı veriye bağlı) -->
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Canvas x:Name="Tuval" MinWidth="820" MinHeight="360"
+                    AutomationProperties.AutomationId="DeadlockTuval" />
+        </ScrollViewer>
+    </DockPanel>
+</Window>

@@ -1,0 +1,268 @@
+<Window x:Class="SQLST.App.Views.BaglantiPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:SQLST.App.Converters"
+        xmlns:vm="clr-namespace:SQLST.App.ViewModels"
+        Title="SQLST — Bağlantı" Height="624" Width="820"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}" ResizeMode="CanMinimize" Icon="../sqlst.ico"
+        d:DataContext="{d:DesignInstance Type=vm:BaglantiEkraniViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolGorunurluk" />
+    </Window.Resources>
+    <DockPanel>
+        <!-- Marka bandı — v22-S15 SİSTEM TASARIMI (kullanıcı: "giriş ekranı da aynı mantıkla"):
+             sabit indigo-mor GRADYAN yerine DÜZ, palet-güdümlü vurgu bandı (durum çubuğuyla aynı
+             anahtar) — VS ailesinde SSMS'in mavi başlığı, her ailede kendi vurgusu; yazılar beyaz. -->
+        <Border DockPanel.Dock="Top" Height="72" Background="{DynamicResource DurumCubuguZeminFircasi}">
+            <DockPanel Margin="22,0">
+                <!-- Logo (2026-07-25): vektör marka — Tema.xaml SqlstLogo -->
+                <Image DockPanel.Dock="Left" Source="{StaticResource SqlstLogo}" Width="40" Height="40"
+                       VerticalAlignment="Center" Margin="0,0,12,0" />
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock Text="SQLST" Foreground="{DynamicResource DurumCubuguMetinFircasi}" FontWeight="Bold" FontSize="20" />
+                    <TextBlock Text="Veritabanına bağlan — SQL Server · PostgreSQL · MySQL · Oracle · MongoDB"
+                               Foreground="{DynamicResource DurumCubuguMetinFircasi}" Opacity="0.78" FontSize="11.5" Margin="1,2,0,0" />
+                </StackPanel>
+                <Path DockPanel.Dock="Right" Data="{StaticResource Ikon.Veritabani}" Stretch="Uniform"
+                      Width="34" Height="34" Stroke="{DynamicResource DurumCubuguMetinFircasi}" StrokeThickness="1.6" Fill="Transparent"
+                      Opacity="0.85" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="18" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sol: profil kartları -->
+        <DockPanel Grid.Column="0">
+            <TextBlock DockPanel.Dock="Top" Text="KAYITLI PROFİLLER" FontWeight="Bold" FontSize="10.5"
+                       Foreground="{DynamicResource SolukMetinFircasi}" Margin="2,0,0,8" />
+            <UniformGrid DockPanel.Dock="Bottom" Columns="2" Margin="0,8,0,0">
+                <Button x:Name="BtnYeni" Content="＋ Yeni" Margin="0,0,4,0" Padding="0,6" Click="Yeni_Click"
+                        AutomationProperties.AutomationId="BtnYeni" />
+                <Button x:Name="BtnSil" Content="Sil" Margin="4,0,0,0" Padding="0,6" Click="Sil_Click"
+                        AutomationProperties.AutomationId="BtnSil" />
+            </UniformGrid>
+            <ListBox x:Name="ListProfiller" ItemsSource="{Binding Profiller}"
+                     SelectionChanged="Profil_SelectionChanged"
+                     MouseDoubleClick="Profil_CiftTik"
+                     HorizontalContentAlignment="Stretch"
+                     AutomationProperties.AutomationId="ListProfiller">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderThickness="0" Padding="0" Margin="0,2">
+                            <StackPanel Margin="8,4">
+                                <DockPanel>
+                                    <Ellipse DockPanel.Dock="Left" Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#4F46E5" /><!-- MSSQL indigo -->
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Motor}" Value="Postgres"><Setter Property="Fill" Value="#0D9488" /></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Motor}" Value="MySql"><Setter Property="Fill" Value="#D97706" /></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Motor}" Value="Oracle"><Setter Property="Fill" Value="#DC2626" /></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Motor}" Value="Mongo"><Setter Property="Fill" Value="#16A34A" /></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding Ad}" FontWeight="SemiBold" />
+                                </DockPanel>
+                                <TextBlock Foreground="{DynamicResource IkincilFircasi}" FontSize="11"
+                                           Text="{Binding Sunucu, Mode=OneWay}" />
+                                <!-- Motor rozeti (V3-S1): varsayılan MSSQL'de gizli, diğer motorlarda görünür -->
+                                <TextBlock FontSize="10" Foreground="{DynamicResource BilgiMetinFircasi}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Motor}" Value="Postgres">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="Text" Value="◆ PostgreSQL" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Motor}" Value="MySql">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="Text" Value="◆ MySQL / MariaDB" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Motor}" Value="Oracle">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="Text" Value="◆ Oracle" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Motor}" Value="Mongo">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="Text" Value="◆ MongoDB" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="⊘ salt-okunur" FontSize="10" Foreground="{DynamicResource IkincilFircasi}"
+                                           Visibility="{Binding SaltOkunur, Converter={StaticResource BoolGorunurluk}}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <!-- Sağ: profil formu -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="Profil" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+            <Grid Grid.Row="1" IsEnabled="{Binding Mesgul, Converter={x:Static conv:TersBool.Ornek}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.Resources>
+                    <!-- DİKKAT: buradaki stiller BasedOn ile Tema.xaml'daki temalı implicit
+                         stillere bağlanmak ZORUNDA — BasedOn'suz lokal implicit stil temayı
+                         gölgeler, kontroller varsayılan beyaz/siyah görünüme düşer
+                         (koyu tema 3. tur kullanıcı bulgusu, 2026-07-17). TextBlock stili
+                         implicit OLAMAZ: ContentPresenter'ın ürettiği yazılara da sızar. -->
+                    <Style x:Key="FormEtiketi" TargetType="TextBlock">
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                        <Setter Property="Margin" Value="0,0,8,8" />
+                    </Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                        <Setter Property="Padding" Value="4,3" />
+                    </Style>
+                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                    </Style>
+                    <Style TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                        <Setter Property="Padding" Value="4,3" />
+                    </Style>
+                    <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                    </Style>
+                </Grid.Resources>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Motor" Style="{StaticResource FormEtiketi}" />
+                <ComboBox  Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Motorlar}"
+                           SelectedValuePath="Deger" SelectedValue="{Binding Motor}"
+                           AutomationProperties.AutomationId="CmbMotor" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Profil adı" Style="{StaticResource FormEtiketi}" />
+                <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding Ad, UpdateSourceTrigger=PropertyChanged}"
+                           AutomationProperties.AutomationId="TxtAd" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Sunucu" Style="{StaticResource FormEtiketi}" />
+                <TextBox   Grid.Row="2" Grid.Column="1" Text="{Binding Sunucu, UpdateSourceTrigger=PropertyChanged}"
+                           ToolTip="MSSQL: sunucu\instance · PostgreSQL/MySQL/Mongo: host veya host:port · Oracle: host:port/servis · Mongo tam URI de kabul eder (mongodb://…)"
+                           AutomationProperties.AutomationId="TxtSunucu" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Kimlik doğrulama" Style="{StaticResource FormEtiketi}" />
+                <ComboBox  Grid.Row="3" Grid.Column="1" ItemsSource="{Binding KimlikTurleri}"
+                           SelectedItem="{Binding Kimlik}"
+                           AutomationProperties.AutomationId="CmbKimlik" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Kullanıcı adı" Style="{StaticResource FormEtiketi}" />
+                <TextBox   Grid.Row="4" Grid.Column="1" Text="{Binding KullaniciAdi, UpdateSourceTrigger=PropertyChanged}"
+                           IsEnabled="{Binding SqlKimlikMi}"
+                           AutomationProperties.AutomationId="TxtKullanici" />
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Parola" Style="{StaticResource FormEtiketi}" />
+                <DockPanel Grid.Row="5" Grid.Column="1">
+                    <TextBlock DockPanel.Dock="Right" FontSize="10" Foreground="{DynamicResource SolukMetinFircasi}" Margin="6,0,0,8"
+                               Text="(boş bırakılırsa kayıtlı parola korunur)"
+                               Visibility="{Binding KayitliParolaVar, Converter={StaticResource BoolGorunurluk}}" />
+                    <PasswordBox x:Name="ParolaKutusu" IsEnabled="{Binding SqlKimlikMi}" />
+                </DockPanel>
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="Koruma" Style="{StaticResource FormEtiketi}" />
+                <!-- Neyin engellendiği MOTORA GÖRE yazılır (kullanıcı isteği 2026-07-19):
+                     MongoDB'de sorgu metni JSON'dur, "DELETE" diye bir sözcük yoktur. -->
+                <StackPanel Grid.Row="6" Grid.Column="1">
+                    <CheckBox Content="Salt-okunur — yazma sorgusu hiç gönderilmez"
+                              IsChecked="{Binding SaltOkunur}"
+                              AutomationProperties.AutomationId="ChkSaltOkunur" />
+                    <TextBlock Text="{Binding SaltOkunurAciklamasi, StringFormat='({0})'}"
+                               TextWrapping="Wrap" Margin="20,2,0,8" FontSize="11"
+                               Foreground="{DynamicResource SolukMetinFircasi}"
+                               AutomationProperties.AutomationId="TxtSaltOkunurAciklama" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="Zaman aşımı (sn)" Style="{StaticResource FormEtiketi}" />
+                <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="Bağlantı:" VerticalAlignment="Center" Margin="0,0,4,8" Foreground="{DynamicResource ZayifMetinFircasi}" />
+                    <TextBox Width="60" Text="{Binding BaglantiTimeoutSn, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.AutomationId="TxtBaglantiTimeout" />
+                    <TextBlock Text="Sorgu:" VerticalAlignment="Center" Margin="16,0,4,8" Foreground="{DynamicResource ZayifMetinFircasi}" />
+                    <TextBox Width="60" Text="{Binding KomutTimeoutSn, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="0 = sınırsız (SSMS varsayılanı)"
+                             AutomationProperties.AutomationId="TxtKomutTimeout" />
+                    <TextBlock Text="(0 = sınırsız)" VerticalAlignment="Center" Margin="8,0,0,8"
+                               FontSize="10" Foreground="{DynamicResource SolukMetinFircasi}" />
+                </StackPanel>
+
+                <!-- FG-3.14 (V2-S10): app.config'ten kopyalanan dizeyle formu doldur.
+                     V4-S4: çözücü beş motorun biçimlerini anlıyor (anahtar=değer · postgresql:// ·
+                     mysql:// · mongodb(+srv):// · Oracle Easy Connect/TNS) ve motoru dizeden
+                     TANIYOR → düğme artık her motorda görünür. -->
+                <Button Grid.Row="8" Grid.Column="1" Content="📋 Connection string'den doldur" Margin="0,4,0,0"
+                        Padding="8,4" HorizontalAlignment="Left" Click="CsIceAktar_Click"
+                        ToolTip="Bağlantı dizesini ya da URI'yi yapıştırın — motor tanınır, form dolar; parola varsa parola kutusuna geçer"
+                        AutomationProperties.AutomationId="BtnCsIceAktar" />
+            </Grid>
+
+            <TextBlock Grid.Row="2" Text="{Binding Durum}" TextWrapping="Wrap" Margin="0,8"
+                       AutomationProperties.AutomationId="LblDurum">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource BasariFircasi}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding DurumHata}" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource TehlikeFircasi}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnTestEt" Padding="15,6" Margin="0,0,8,0" Click="TestEt_Click"
+                        Style="{StaticResource AracDugmesi}" Foreground="{DynamicResource IkonTeal}"
+                        Tag="{StaticResource Ikon.Kalkan}" Content="Test Et"
+                        IsEnabled="{Binding Mesgul, Converter={x:Static conv:TersBool.Ornek}}"
+                        AutomationProperties.AutomationId="BtnTestEt" />
+                <Button x:Name="BtnKaydet" Content="Kaydet" Padding="16,6" Margin="0,0,8,0" Click="Kaydet_Click"
+                        IsEnabled="{Binding Mesgul, Converter={x:Static conv:TersBool.Ornek}}"
+                        AutomationProperties.AutomationId="BtnKaydet" />
+                <Button x:Name="BtnBaglan" Padding="22,7" Style="{StaticResource BirincilDugme}" Click="Baglan_Click"
+                        IsEnabled="{Binding Mesgul, Converter={x:Static conv:TersBool.Ornek}}"
+                        AutomationProperties.AutomationId="BtnBaglan">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- Renk düğmenin Foreground'undan (v23-S14 klasik düzende düğme dolgusuz). -->
+                        <Path Data="{StaticResource Ikon.Play}" Stretch="Uniform" Width="11" Height="11"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              Margin="0,0,7,0" VerticalAlignment="Center" />
+                        <TextBlock Text="Bağlan" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

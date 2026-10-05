@@ -1,0 +1,175 @@
+<Window x:Class="SQLST.App.Views.DosyaImportPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Excel/TXT İçe Aktar" Width="980" Height="680"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <!-- Üst bilgi -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Dosyayı seçip ÖNİZLE deyin — ilk 200 satır ve kolonların tahmin edilen tipleri aşağıda görünür. Tür kuralları: Excel'de ek ayar yok (ilk sayfa okunur) · CSV'de kolon ayracı OTOMATİK algılanır · TXT'de kolon ve satır ayracını siz seçersiniz. Sayı/tarih yorumu 'Biçim' kültürüne göredir (1.250,75 · 24.07.2026 = Türkçe)."
+                       AutomationProperties.AutomationId="LblImportNot" />
+        </Border>
+
+        <!-- DOSYA + ayarlar -->
+        <GroupBox DockPanel.Dock="Top" Header="DOSYA" Padding="8" Margin="0,0,0,10"
+                  Foreground="{DynamicResource SolukMetinFircasi}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="70" /><ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Dosya:" VerticalAlignment="Center" Margin="0,3" />
+                <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,3">
+                    <Button DockPanel.Dock="Right" Content="Gözat…" Margin="6,0,0,0" Padding="12,3"
+                            Click="Gozat_Click" AutomationProperties.AutomationId="BtnImpGozat" />
+                    <TextBox x:Name="DosyaYolu" IsReadOnly="True" VerticalContentAlignment="Center"
+                             AutomationProperties.AutomationId="TxtImpDosyaYolu" />
+                </DockPanel>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ayarlar:" VerticalAlignment="Center" Margin="0,3" />
+                <!-- WrapPanel: dar pencerede ayarlar alt satıra KIRILIR — Önizle düğmesi asla taşmaz
+                     (render kanıtı: DockPanel'de 980px'te düğme ekran dışında kalıyordu). -->
+                <WrapPanel Grid.Row="1" Grid.Column="1" Margin="0,3" ItemHeight="30">
+                    <!-- Dosya TÜRÜ (kullanıcı kuralı 2026-07-26): Excel=ayarsız · CSV=ayraç OTOMATİK ·
+                         TXT=kolon+satır ayracı. Gözat uzantıdan ön-seçer, kullanıcı değiştirebilir. -->
+                    <TextBlock Text="Tür:" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox x:Name="Tur" Width="90" VerticalAlignment="Center" SelectedIndex="2"
+                              SelectionChanged="Tur_Degisti"
+                              ToolTip="Excel: sayfa seçilir · CSV: kolon ayracı OTOMATİK algılanır · TXT: kolon ve satır ayracını siz seçersiniz"
+                              AutomationProperties.AutomationId="CmbImpTur" />
+                    <!-- Excel'in ek ayarı YOK (kullanıcı 2026-07-26: "sayfa koymanın amacı nedir,
+                         gerek yoktu") — her zaman İLK sayfa okunur. -->
+                    <!-- TXT'ye özgü -->
+                    <TextBlock x:Name="AyracEtiketi" Text="Kolon ayracı:" VerticalAlignment="Center"
+                               Margin="0,0,6,0" Visibility="Collapsed" />
+                    <ComboBox x:Name="Ayrac" Width="150" VerticalAlignment="Center" IsEditable="True"
+                              Visibility="Collapsed"
+                              ToolTip="Listeden seçin ya da tek karakter yazın"
+                              AutomationProperties.AutomationId="CmbImpAyrac" />
+                    <TextBlock x:Name="SatirAyracEtiketi" Text="Satır ayracı:" VerticalAlignment="Center"
+                               Margin="12,0,6,0" Visibility="Collapsed" />
+                    <ComboBox x:Name="SatirAyrac" Width="160" VerticalAlignment="Center" IsEditable="True"
+                              Visibility="Collapsed"
+                              ToolTip="Otomatik = satır sonları (CRLF/LF). Kayıtlar tek satırda özel karakterle ayrılıyorsa onu seçin ya da yazın — CRLF/LF'ye EK sayılır."
+                              AutomationProperties.AutomationId="CmbImpSatirAyrac" />
+                    <TextBlock x:Name="KodlamaEtiketi" Text="Kodlama:" VerticalAlignment="Center"
+                               Margin="12,0,6,0" Visibility="Collapsed" />
+                    <ComboBox x:Name="Kodlama" Width="190" VerticalAlignment="Center" Visibility="Collapsed"
+                              ToolTip="Türkçe karakterler bozuk görünüyorsa Windows-1254'ü deneyin (BOM'lu dosyada otomatik)"
+                              AutomationProperties.AutomationId="CmbImpKodlama" />
+                    <!-- Ortak -->
+                    <TextBlock Text="Biçim:" VerticalAlignment="Center" Margin="12,0,6,0" />
+                    <ComboBox x:Name="Kultur" Width="210" VerticalAlignment="Center" SelectedIndex="0"
+                              ToolTip="Sayı/tarih yorumlama kültürü — tip tahmini ve (S3) dönüşüm buna göre"
+                              AutomationProperties.AutomationId="CmbImpKultur" />
+                    <CheckBox x:Name="IlkSatirBaslik" Content="İlk satır başlık" IsChecked="True"
+                              VerticalAlignment="Center" Margin="12,0,0,0"
+                              ToolTip="İşaretliyse kolon adları ilk satırdan alınır; değilse Kolon1, Kolon2…"
+                              AutomationProperties.AutomationId="ChkImpBaslik" />
+                    <Button x:Name="OnizleDugmesi" Content="🔍 Önizle" Margin="16,0,0,0" Padding="14,3"
+                            Style="{StaticResource BirincilDugme}" Click="Onizle_Click" IsEnabled="False"
+                            AutomationProperties.AutomationId="BtnImpOnizle" />
+                </WrapPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- HEDEF (v13-S3): bağlı sunucuda DB + tablo (S4'te "yeni tablo" seçeneği eklenecek) -->
+        <GroupBox DockPanel.Dock="Top" Header="HEDEF (bağlı olduğunuz sunucu)" Padding="8" Margin="0,0,0,10"
+                  Foreground="{DynamicResource SolukMetinFircasi}">
+            <WrapPanel ItemHeight="30">
+                <TextBlock Text="Veritabanı:" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <ComboBox x:Name="HedefDb" Width="200" VerticalAlignment="Center"
+                          SelectionChanged="HedefDb_Secildi"
+                          AutomationProperties.AutomationId="CmbImpHedefDb" />
+                <TextBlock Text="Tablo:" VerticalAlignment="Center" Margin="12,0,6,0" />
+                <!-- YAZILABİLİR (v13-S4): listeden seç YA DA yeni tablo adı yaz — yoksa CREATE
+                     script'i üretilir, ONAYINLA oluşturulur (dbo. şeması otomatik). -->
+                <ComboBox x:Name="HedefTablo" Width="240" VerticalAlignment="Center" IsEditable="True"
+                          ToolTip="Listeden seçin YA DA yeni tablo adı yazın (ör. Satislar ya da raporlar.Satislar) — yoksa onayınızla oluşturulur"
+                          AutomationProperties.AutomationId="CmbImpHedefTablo" />
+                <TextBlock Text="Yazma:" VerticalAlignment="Center" Margin="12,0,6,0" />
+                <ComboBox x:Name="YazmaKipi" Width="185" VerticalAlignment="Center" SelectedIndex="0"
+                          ToolTip="Ekle/Güncelle: hedefin birincil anahtarına (🔑) göre var olan satır GÜNCELLENİR, olmayan eklenir"
+                          AutomationProperties.AutomationId="CmbImpYazmaKipi" />
+                <CheckBox x:Name="OnceTemizle" Content="Önce hedefi TEMİZLE (DELETE)" VerticalAlignment="Center"
+                          Margin="12,0,0,0"
+                          ToolTip="Aktarımdan önce hedef tablodaki TÜM satırlar silinir — başlatırken ayrıca onay istenir"
+                          AutomationProperties.AutomationId="ChkImpTemizle" />
+                <TextBlock Text="Hata olursa:" VerticalAlignment="Center" Margin="12,0,6,0" />
+                <ComboBox x:Name="HataPolitikasi" Width="185" VerticalAlignment="Center" SelectedIndex="0"
+                          AutomationProperties.AutomationId="CmbImpHataPolitikasi" />
+            </WrapPanel>
+        </GroupBox>
+
+        <!-- Çalıştırma + durum + rapor -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" x:Name="AktarDugmesi" Content="📥 Aktar" Padding="18,6"
+                    Style="{StaticResource BirincilDugme}" Click="Aktar_Click" IsEnabled="False"
+                    ToolTip="Önce dosyayı önizleyin ve hedef tabloyu seçin"
+                    AutomationProperties.AutomationId="BtnImpAktar" />
+            <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="■ Durdur" Padding="12,6"
+                    Margin="0,0,8,0" IsEnabled="False" Click="Durdur_Click"
+                    AutomationProperties.AutomationId="BtnImpDurdur" />
+            <Border />
+        </DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,8,0,0">
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Bottom" x:Name="Ilerleme" Height="8" Margin="0,6,0,0"
+                             IsIndeterminate="False" Visibility="Collapsed"
+                             AutomationProperties.AutomationId="PrgImpAktarim" />
+                <TextBox DockPanel.Dock="Bottom" x:Name="Rapor" IsReadOnly="True" Visibility="Collapsed"
+                         FontFamily="{StaticResource KodYazisi}" FontSize="12" Margin="0,6,0,0"
+                         MaxHeight="110" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                         HorizontalScrollBarVisibility="Auto" BorderThickness="1"
+                         BorderBrush="{DynamicResource KenarFircasi}"
+                         Background="{DynamicResource PencereZeminFircasi}"
+                         AutomationProperties.AutomationId="TxtImpRapor" />
+                <TextBlock x:Name="Durum" TextWrapping="Wrap" FontSize="12.5"
+                           Foreground="{DynamicResource BilgiMetinFircasi}"
+                           Text="Dosya seçin — Gözat ile başlayın."
+                           AutomationProperties.AutomationId="LblImportDurum" />
+            </DockPanel>
+        </Border>
+
+        <!-- Alt yarı: önizleme (sol) + eşleme (sağ) — ikisi de aynı anda görünür,
+             eşleme HEDEF kolon başına satırdır (v12 deseni: 🔑 + boş = aktarma). -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+            <DataGrid Grid.Column="0" x:Name="OnizlemeGrid" AutoGenerateColumns="True" IsReadOnly="True"
+                      CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                      AutoGeneratingColumn="OnizlemeGrid_AutoGeneratingColumn"
+                      AutomationProperties.AutomationId="ImportOnizlemeGrid" />
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          Background="{DynamicResource KenarFircasi}" />
+            <DataGrid Grid.Column="2" x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      AutomationProperties.AutomationId="ImportEslemeGrid">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Hedef kolon" Binding="{Binding HedefGosterim}" IsReadOnly="True" Width="150" />
+                    <DataGridTextColumn Header="Tip" Binding="{Binding HedefTip}" IsReadOnly="True" Width="110" />
+                    <DataGridTemplateColumn Header="Dosya kolonu (boş = aktarma)" Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding KaynakAdaylar}"
+                                          SelectedItem="{Binding KaynakKolon, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="2" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,85 @@
+<Window x:Class="SQLST.App.Views.GeriAlPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — ⏪ Geri Al Paketleri" Width="1000" Height="640"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <!-- Üst bilgi -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Güvenli Yazma modunda COMMIT ettiğiniz UPDATE/DELETE'lerin ETKİLENEN SATIRLARININ ESKİ HALİ burada saklanır. Bir paketi seçip 'Geri alma script'i üret' derseniz, o değişikliği tersine çeviren DML yeni bir sekmede açılır — çalıştırmaz, inceleyip Güvenli Yazma ile siz koşarsınız. Paketler ~30 gün / ~500 MB sınırında tutulur."
+                       AutomationProperties.AutomationId="LblGeriAlNot" />
+        </Border>
+
+        <!-- Alt eylem çubuğu -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="Kapat" Padding="16,5" Click="Kapat_Click"
+                    AutomationProperties.AutomationId="BtnGeriAlKapat" />
+            <Button DockPanel.Dock="Right" Content="🗑 Paketi sil" Padding="14,5" Margin="0,0,8,0"
+                    Click="Sil_Click"
+                    ToolTip="Seçili paketi depodan siler (geri alınamaz)"
+                    AutomationProperties.AutomationId="BtnGeriAlSil" />
+            <Button DockPanel.Dock="Right" Content="⏪ Geri alma script'i üret" Padding="16,5" Margin="0,0,8,0"
+                    Style="{StaticResource BirincilDugme}" Click="ScriptUret_Click"
+                    ToolTip="Seçili paketten ters DML üretir ve yeni sekmede açar (çalıştırmaz)"
+                    AutomationProperties.AutomationId="BtnGeriAlUret" />
+            <TextBlock x:Name="Durum" VerticalAlignment="Center"
+                       Foreground="{DynamicResource SolukMetinFircasi}"
+                       AutomationProperties.AutomationId="LblGeriAlDurum" />
+        </DockPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sol: paket listesi (en yeni üstte) -->
+            <ListBox x:Name="PaketListesi" Grid.Column="0"
+                     SelectionChanged="Paket_Secildi"
+                     Background="{DynamicResource PanelZeminFircasi}" BorderBrush="{DynamicResource KenarFircasi}"
+                     AutomationProperties.AutomationId="LstGeriAlPaketler">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="2,4">
+                            <TextBlock FontWeight="SemiBold">
+                                <Run Text="{Binding Fiil, Mode=OneWay}" />
+                                <Run Text=" · " />
+                                <Run Text="{Binding Tablo, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Foreground="{DynamicResource SolukMetinFircasi}" FontSize="11.5">
+                                <Run Text="{Binding SatirSayisi, Mode=OneWay}" />
+                                <Run Text=" satır · " />
+                                <Run Text="{Binding YerelZaman, Mode=OneWay}" />
+                                <Run Text=" · " />
+                                <Run Text="{Binding Veritabani, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="{DynamicResource KenarFircasi}" />
+
+            <!-- Sağ: seçili paketin doğuran SQL'i + eski satır önizlemesi -->
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Text="Bu paketi doğuran sorgu:" Margin="0,0,0,4"
+                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                <TextBox DockPanel.Dock="Top" x:Name="DoguranSql" IsReadOnly="True" Height="70"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"
+                         Background="{DynamicResource EditorZeminFircasi}"
+                         AutomationProperties.AutomationId="TxtGeriAlDoguranSql" />
+                <TextBlock DockPanel.Dock="Top" Text="Etkilenen satırların ESKİ hali (geri yazılacak):"
+                           Margin="0,0,0,4" Foreground="{DynamicResource SolukMetinFircasi}" />
+                <DataGrid x:Name="EskiHalGrid" IsReadOnly="True" AutoGenerateColumns="True"
+                          Background="{DynamicResource PanelZeminFircasi}"
+                          GridLinesVisibility="All" HeadersVisibility="Column"
+                          AutomationProperties.AutomationId="GrdGeriAlEskiHal" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

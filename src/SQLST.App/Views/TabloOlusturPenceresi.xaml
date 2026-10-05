@@ -1,0 +1,79 @@
+<Window x:Class="SQLST.App.Views.TabloOlusturPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Tablo oluştur / düzenle" Width="1040" Height="520"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <!-- Kip: yeni tablo (CREATE) ya da var olan tabloya sütun ekleme (ALTER) -->
+        <DockPanel x:Name="KipPaneli" DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock Text="Kip:" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <RadioButton x:Name="KipOlustur" Content="🆕 Yeni tablo (CREATE)" IsChecked="True"
+                         VerticalAlignment="Center" Margin="0,0,16,0" GroupName="Kip"
+                         AutomationProperties.AutomationId="RbKipOlustur" />
+            <RadioButton x:Name="KipEkle" Content="➕ Var olan tabloya sütun ekle (ALTER)"
+                         VerticalAlignment="Center" GroupName="Kip"
+                         ToolTip="Seçili tabloya yeni sütun(lar) ekleyen ALTER TABLE … ADD script'i üretir. Bu kipte PK/IDENTITY eklenemez."
+                         AutomationProperties.AutomationId="RbKipEkle" />
+        </DockPanel>
+
+        <!-- Şema + tablo adı -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock Text="Şema:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox x:Name="SemaKutusu" Width="120" Margin="0,0,14,0" VerticalContentAlignment="Center"
+                     Padding="4,3" AutomationProperties.AutomationId="TxtTabloSema" />
+            <TextBlock Text="Tablo adı:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox x:Name="AdKutusu" VerticalContentAlignment="Center" Padding="4,3"
+                     AutomationProperties.AutomationId="TxtTabloAd" />
+        </DockPanel>
+
+        <!-- Alt: hata + düğmeler -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Left" Content="➕ Kolon" Padding="12,5" Click="KolonEkle_Click"
+                    AutomationProperties.AutomationId="BtnKolonEkle" />
+            <!-- v20-S13 madde 6: JSON→tablo modunda AI şema önerisi (kolon adları korunur, tip/pk/null iyileşir) -->
+            <Button DockPanel.Dock="Left" x:Name="AiOnerDugmesi" Content="🤖 AI ile öner" Padding="12,5" Margin="8,0,0,0"
+                    Click="AiSemaOner_Click" Visibility="Collapsed"
+                    ToolTip="Örnek veriden AI'a uygun SQL tipi + PK + null önerttir (kolon adları ve veri eşlemesi korunur)"
+                    AutomationProperties.AutomationId="BtnTabloAiOner" />
+            <Button DockPanel.Dock="Right" x:Name="UretDugmesi" Content="▶ Script üret" Padding="20,5" IsDefault="True"
+                    Style="{StaticResource BirincilDugme}" Click="Uret_Click"
+                    ToolTip="CREATE TABLE script'ini üretip yeni bir sorgu sekmesinde açar (çalıştırmaz)"
+                    AutomationProperties.AutomationId="BtnTabloUret" />
+            <Button DockPanel.Dock="Right" Content="İptal" Padding="16,5" Margin="0,0,8,0"
+                    Click="Iptal_Click" AutomationProperties.AutomationId="BtnTabloIptal" />
+            <TextBlock x:Name="HataMetni" VerticalAlignment="Center" Margin="12,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TehlikeFircasi}"
+                       AutomationProperties.AutomationId="LblTabloHata" />
+        </DockPanel>
+
+        <!-- Kolonlar -->
+        <DataGrid x:Name="KolonGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  AutomationProperties.AutomationId="TabloKolonGrid">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Ad" Binding="{Binding Ad, UpdateSourceTrigger=PropertyChanged}" Width="150" />
+                <DataGridTextColumn Header="Tip" Binding="{Binding Tip, UpdateSourceTrigger=PropertyChanged}" Width="130" />
+                <DataGridCheckBoxColumn Header="NULL" Binding="{Binding NullOlabilir}" Width="48" />
+                <DataGridCheckBoxColumn Header="PK" Binding="{Binding PkMi}" Width="40" />
+                <DataGridCheckBoxColumn Header="IDENTITY" Binding="{Binding IdentityMi}" Width="70" />
+                <DataGridCheckBoxColumn Header="UNIQUE" Binding="{Binding BenzersizMi}" Width="62" />
+                <DataGridTextColumn Header="Varsayılan" Binding="{Binding Varsayilan, UpdateSourceTrigger=PropertyChanged}" Width="100" />
+                <DataGridTextColumn Header="CHECK ifadesi" Binding="{Binding Kontrol, UpdateSourceTrigger=PropertyChanged}" Width="140" />
+                <DataGridTextColumn Header="FK → tablo" Binding="{Binding FkTablo, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                <DataGridTextColumn Header="FK → kolon" Binding="{Binding FkKolon, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                <DataGridTemplateColumn Width="34">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="✕" Padding="6,0" Background="Transparent" BorderThickness="0"
+                                    Cursor="Hand" Click="KolonSil_Click" ToolTip="Bu kolonu kaldır" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

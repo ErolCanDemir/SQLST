@@ -1,0 +1,32 @@
+bin/
+obj/
+.vs/
+*.user
+publish/
+installer/out/
+profiles.json
+logs/
+
+# Test koşum çıktıları (trx vb.)
+TestResults/
+
+# AI yapilandirmasi (DUZ METIN API ANAHTARI icerir) — ASLA commit edilmez
+installer/asistan.config
+installer/asistan.config.gemini-yedek-*
+
+# AI kurulum varliklari (v21-S3) — GGUF ~4,4 GB + OllamaSetup ~1,5 GB: ASLA commit edilmez
+# (ai-hazirla.ps1 ile yerelde hazirlanir). Modelfile/ai-*.ps1/asistan-yerel.config GIT'te KALIR.
+installer/ai/*.gguf
+installer/ai/OllamaSetup.exe
+installer/ai/ai-kur.log
+# SFX araclari (7-Zip standalone) + gecici paketleme dosyalari
+installer/ai/_7z/
+installer/ai/_paket/
+installer/ai/_payload.7z
+installer/ai/_config.txt
+
+# Ekran-goruntu harness dogrulama gecici PNG'leri (dokümana girmez)
+docs/sunum/gorseller/_*.png
+
+# WPF derleme sirasinda uretilen gecici proje dosyalari (XamlPreCompile)
+*_wpftmp.csproj

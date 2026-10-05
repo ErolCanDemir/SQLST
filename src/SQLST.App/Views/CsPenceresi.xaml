@@ -1,0 +1,20 @@
+<Window x:Class="SQLST.App.Views.CsPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Connection string'den doldur" Width="560" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}" ResizeMode="NoResize" ShowInTaskbar="False">
+    <StackPanel Margin="14">
+        <TextBlock Text="Bağlantı dizesini yapıştırın (app.config / appsettings kaynaklı olabilir):"
+                   Margin="0,0,0,6" />
+        <TextBox x:Name="Dize" AcceptsReturn="True" TextWrapping="Wrap" Height="90"
+                 VerticalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 AutomationProperties.AutomationId="TxtCsDize" />
+        <TextBlock Text="Not: Veritabanı (Database/Initial Catalog) profile alınmaz — bağlantı sunucuyadır, veritabanı sekmeden seçilir."
+                   FontSize="11" Foreground="{DynamicResource SolukMetinFircasi}" TextWrapping="Wrap" Margin="0,6,0,0" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Vazgeç" Padding="14,4" Margin="0,0,8,0" IsCancel="True" />
+            <Button Content="Doldur" Padding="18,4" IsDefault="True" Click="Doldur_Click"
+                    AutomationProperties.AutomationId="BtnCsDoldur" />
+        </StackPanel>
+    </StackPanel>
+</Window>

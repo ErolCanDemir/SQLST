@@ -1,0 +1,106 @@
+<Window x:Class="SQLST.App.Views.SnippetPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Kod parçaları" Height="560" Width="880"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource PencereZeminFircasi}"
+        Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="8">
+        <Border DockPanel.Dock="Top" Padding="8" Margin="0,0,0,8" CornerRadius="3"
+                Background="{DynamicResource BilgiZeminFircasi}">
+            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Kısayolu editörde yazıp tamamlama listesinden (Ctrl+Space) seçtiğinizde gövde girer. Gövdedeki $0 imlecin nereye gideceğini belirler. MOTOR alanı önemlidir: bir kalıp yalnız seçtiğiniz motorda önerilir. &quot;(her motorda)&quot; seçeneğini yalnız gerçekten motordan bağımsız metinler için kullanın — T-SQL kalıbını her motorda işaretlerseniz MongoDB sekmesinde de önerilir ve çalışmayan bir metin girer." />
+        </Border>
+
+        <!-- Listenin neyle sınırlı olduğu yazar: kullanıcı "kalıbım nerede?" diye aramasın -->
+        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" TextWrapping="Wrap"
+                   Text="{Binding Kapsam}" Foreground="{DynamicResource SolukMetinFircasi}"
+                   AutomationProperties.AutomationId="TxtSnippetKapsam" />
+
+        <TextBlock DockPanel.Dock="Bottom" Margin="0,8,0,0" TextWrapping="Wrap"
+                   Text="{Binding Bilgi}" Foreground="{DynamicResource SolukMetinFircasi}"
+                   AutomationProperties.AutomationId="TxtSnippetBilgi" />
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Kenarlık şart: koyu temada grid ile pencere zemini aynı renge yakın olduğundan
+                 sınırı belli olmuyordu (kullanıcı bulgusu 2026-07-19). -->
+            <DataGrid Grid.Column="0" IsReadOnly="True" AutoGenerateColumns="False"
+                      HeadersVisibility="Column" BorderThickness="1"
+                      Background="{DynamicResource PanelZeminFircasi}"
+                      RowBackground="{DynamicResource PanelZeminFircasi}"
+                      ItemsSource="{Binding Snippetler}" SelectedItem="{Binding Secili}"
+                      AutomationProperties.AutomationId="GrdSnippetler">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Kısayol" Binding="{Binding Kisayol}" Width="Auto" />
+                    <DataGridTextColumn Header="Başlık" Binding="{Binding Baslik}" Width="*" />
+                    <DataGridTextColumn Header="Motor" Binding="{Binding Motor}" Width="Auto" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" />
+
+            <DockPanel Grid.Column="2">
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Kısayol:" Margin="0,4,6,4" VerticalAlignment="Center" />
+                    <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,4" Text="{Binding Kisayol, UpdateSourceTrigger=PropertyChanged}"
+                               AutomationProperties.AutomationId="TxtSnippetKisayol" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Başlık:" Margin="0,4,6,4" VerticalAlignment="Center" />
+                    <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,4" Text="{Binding Baslik, UpdateSourceTrigger=PropertyChanged}"
+                               AutomationProperties.AutomationId="TxtSnippetBaslik" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Motor:" Margin="0,4,6,4" VerticalAlignment="Center" />
+                    <!-- SelectedItem SARMALAYICIYA bağlanır: WPF ComboBox null bir öğeyi
+                         seçili tutamaz, o yüzden "(her motorda)" seçilemiyordu
+                         (kullanıcı bulgusu 2026-07-19). -->
+                    <ComboBox  Grid.Row="2" Grid.Column="1" Margin="0,4"
+                               ItemsSource="{Binding Motorlar}"
+                               SelectedItem="{Binding SeciliMotorSecimi}"
+                               DisplayMemberPath="Ad"
+                               AutomationProperties.AutomationId="CmbSnippetMotor" />
+                </Grid>
+
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Button DockPanel.Dock="Right" Content="Sil" Width="90" Padding="0,4" Margin="6,0,0,0"
+                            Command="{Binding SilCommand}"
+                            AutomationProperties.AutomationId="BtnSnippetSil" />
+                    <Button DockPanel.Dock="Right" Content="Kaydet" Width="90" Padding="0,4" Margin="6,0,0,0"
+                            Style="{StaticResource BirincilDugme}"
+                            Command="{Binding KaydetCommand}"
+                            AutomationProperties.AutomationId="BtnSnippetKaydet" />
+                    <Button DockPanel.Dock="Left" Content="Yeni" Width="90" Padding="0,4"
+                            Command="{Binding YeniCommand}"
+                            AutomationProperties.AutomationId="BtnSnippetYeni" />
+                    <!-- Ortadaki boşluğu doldurur ki düğmeler gerilmesin -->
+                    <Border />
+                </DockPanel>
+
+                <!-- Gövde kutusu kod alanıdır: editörle aynı zemin/kenarlık, yoksa koyu
+                     temada pencereden ayrışmıyordu. -->
+                <TextBox AcceptsReturn="True" AcceptsTab="True" FontFamily="Consolas"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}"
+                         Background="{DynamicResource GirisZeminFircasi}"
+                         VerticalContentAlignment="Top" Padding="6,4"
+                         Text="{Binding Govde, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.AutomationId="TxtSnippetGovde" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SQLST.Application\SQLST.Application.csproj" />
+    <ProjectReference Include="..\SQLST.Infrastructure\SQLST.Infrastructure.csproj" />
+    <ProjectReference Include="..\SQLST.Contracts\SQLST.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="DiffPlex.Wpf" Version="1.9.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>sqlst.ico</ApplicationIcon>
+    <AssemblyTitle>SQLST</AssemblyTitle>
+    <!-- ⚠ installer/sqlst.iss icindeki Surum ile AYNI olmali (v22-S4: 0.11.4'te kalmisti,
+         kurulum 0.24.0 diyordu; "Hakkinda" ve dosya ozellikleri yanlis surum gosteriyordu).
+         SurumSenkronTests bu esitligi kilitler. -->
+    <Version>0.27.0</Version>
+    <Product>SQLST</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="sqlst.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ViewModel testleri (B2/A3) olay işleyicisi gibi internal üyeleri ölçebilsin.
+         Olaylar yalnız tanımlayan sınıftan tetiklenebildiğinden dal mantığı başka türlü
+         test edilemiyordu; alternatif, yalnız test için public API açmaktı. -->
+    <InternalsVisibleTo Include="SQLST.App.Tests" />
+  </ItemGroup>
+
+</Project>

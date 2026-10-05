@@ -1,0 +1,377 @@
+<Window x:Class="SQLST.App.Views.RestIstemciPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+        Title="SQLST — 🌐 REST İstemcisi" Width="1280" Height="800"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <!-- v23 POSTMAN DÜZENİ (kullanıcı onaylı mockup: docs/mockup/rest-istemci-postman.html):
+         sol panel Koleksiyonlar↔Geçmiş sekmeli + ortam sol altta · Kimlik artık bir SEKME ·
+         URL ↔ Params çift yönlü senkron (RestUrlSenkron) · renkli durum rozetleri · metod renkleri ·
+         yardımcı üreticiler URL yanında ikon · SQLST yanıt araçları tek sıra + ⋯ taşma menüsü. -->
+    <Window.Resources>
+        <!-- Grid hücre metni dikey ORTALANIR (kullanıcı bulgusu: imleç/metin yukarı yapışıktı) -->
+        <Style x:Key="HucreDuzen" TargetType="TextBox">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="4,0" />
+        </Style>
+        <Style x:Key="HucreGoster" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Padding" Value="4,0" />
+        </Style>
+        <!-- Postman metod renkleri — açılır listede her öğe kendi renginde -->
+        <Style x:Key="MetodOge" TargetType="ComboBoxItem">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding}" Value="GET"><Setter Property="Foreground" Value="#1A7F37" /></DataTrigger>
+                <DataTrigger Binding="{Binding}" Value="POST"><Setter Property="Foreground" Value="#B45309" /></DataTrigger>
+                <DataTrigger Binding="{Binding}" Value="PUT"><Setter Property="Foreground" Value="#0F6CBD" /></DataTrigger>
+                <DataTrigger Binding="{Binding}" Value="PATCH"><Setter Property="Foreground" Value="#6936AA" /></DataTrigger>
+                <DataTrigger Binding="{Binding}" Value="DELETE"><Setter Property="Foreground" Value="#C42B1C" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- URL yanındaki küçük araç düğmeleri (🤖/📋/💻) -->
+        <Style x:Key="IkonDugme" TargetType="Button">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Padding" Value="0,5" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <!-- Yanıt rozetleri -->
+        <Style x:Key="Rozet" TargetType="Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- ALT: durum çubuğu — ana penceredeki imza mavi bandın kardeşi -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DurumCubuguZeminFircasi}" Padding="12,4">
+            <TextBlock x:Name="DurumMetni" FontSize="12" Foreground="{DynamicResource DurumCubuguMetinFircasi}"
+                       Text="Method, URL girin ve Gönder'e basın." TextTrimming="CharacterEllipsis"
+                       AutomationProperties.AutomationId="LblRestDurum" />
+        </Border>
+
+        <Grid Margin="12,12,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="268" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- SOL: Koleksiyonlar ↔ Geçmiş (Postman sidebar) + ortam sol altta -->
+            <DockPanel Grid.Column="0" Margin="0,0,12,0">
+                <DockPanel x:Name="OrtamPaneli" DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                    <TextBlock DockPanel.Dock="Left" Text="Ortam:" VerticalAlignment="Center" Margin="0,0,6,0"
+                               Foreground="{DynamicResource SolukMetinFircasi}" FontSize="12" />
+                    <Button DockPanel.Dock="Right" x:Name="OrtamKaydetDugmesi" Content="💾" Width="30" Padding="0,3"
+                            Margin="6,0,0,0" Click="OrtamKaydet_Click"
+                            ToolTip="Değişken kümesini ortam (dev/test/prod) olarak kaydet — değerler DPAPI ile şifreli saklanır"
+                            AutomationProperties.AutomationId="BtnRestOrtamKaydet" />
+                    <ComboBox x:Name="OrtamSecim" SelectionChanged="OrtamSecim_Degisti"
+                              ToolTip="Kayıtlı ortam (dev/test/prod) — seçince değişken kümesi yüklenir"
+                              AutomationProperties.AutomationId="CmbRestOrtam" />
+                </DockPanel>
+                <TabControl AutomationProperties.AutomationId="RestSolSekmeler">
+                    <TabItem Header="📁 Koleksiyonlar">
+                        <DockPanel Margin="0,6,0,0">
+                            <Button DockPanel.Dock="Top" x:Name="IstekKaydetDugmesi" Content="💾 Bu isteği kaydet"
+                                    Padding="6,4" Margin="0,0,0,6" Click="IstekKaydet_Click"
+                                    HorizontalContentAlignment="Center"
+                                    ToolTip="Koleksiyon için ada 'Grup/Ad' yazın (ör. Kimlik/Token al)"
+                                    AutomationProperties.AutomationId="BtnRestIstekKaydet" />
+                            <ListBox x:Name="KayitliListe" BorderThickness="0"
+                                     MouseDoubleClick="Kayitli_CiftTik" AutomationProperties.AutomationId="RestKayitliListe">
+                                <ListBox.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"
+                                                           Foreground="{DynamicResource BilgiMetinFircasi}" />
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ListBox.GroupStyle>
+                                <ListBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="↧ Yükle" Click="KayitliYukle_Click" />
+                                        <MenuItem Header="🗑 Sil" Click="KayitliSil_Click" />
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                            </ListBox>
+                        </DockPanel>
+                    </TabItem>
+                    <TabItem Header="🕘 Geçmiş">
+                        <ListBox x:Name="Gecmis" Margin="0,6,0,0" BorderThickness="0" MouseDoubleClick="Gecmis_CiftTik"
+                                 AutomationProperties.AutomationId="RestGecmisListe" />
+                    </TabItem>
+                </TabControl>
+            </DockPanel>
+
+            <!-- ANA: URL satırı · istek sekmeleri · splitter · yanıt -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="1.6*" MinHeight="150" />
+                    <RowDefinition Height="4" />
+                    <RowDefinition Height="1*" MinHeight="140" />
+                </Grid.RowDefinitions>
+
+                <!-- URL satırı: Metod + URL + Gönder/Durdur + ikon araçlar -->
+                <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                    <ComboBox DockPanel.Dock="Left" x:Name="Metod" Width="96" Margin="0,0,8,0"
+                              FontFamily="Cascadia Mono, Consolas" FontWeight="Bold"
+                              ItemContainerStyle="{StaticResource MetodOge}" SelectionChanged="Metod_Secildi"
+                              AutomationProperties.AutomationId="CmbRestMetod" />
+                    <!-- yardımcı üreticiler — mockup: URL'nin sağında küçük ikonlar -->
+                    <Button DockPanel.Dock="Right" x:Name="KodUretDugmesi" Content="💻" Style="{StaticResource IkonDugme}"
+                            Click="KodUret_Click"
+                            ToolTip="Kod üret — bu isteği cURL / C# / Python koduna dök (değişkenler çözülür, panoya kopyalanır)"
+                            AutomationProperties.AutomationId="BtnRestKodUret">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="cURL" Tag="Curl" Click="KodUretDil_Click" />
+                                <MenuItem Header="C# (HttpClient)" Tag="CSharp" Click="KodUretDil_Click" />
+                                <MenuItem Header="Python (requests)" Tag="Python" Click="KodUretDil_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button DockPanel.Dock="Right" x:Name="CurlYapistirDugmesi" Content="📋" Style="{StaticResource IkonDugme}"
+                            Click="CurlYapistir_Click"
+                            ToolTip="cURL yapıştır — panodaki curl komutunu method/URL/başlık/gövde/kimliğe çevirir (DevTools: Copy as cURL)"
+                            AutomationProperties.AutomationId="BtnRestCurlYapistir" />
+                    <Button DockPanel.Dock="Right" x:Name="AiUretDugmesi" Content="🤖" Style="{StaticResource IkonDugme}"
+                            Click="AiUret_Click"
+                            ToolTip="AI üret — doğal dille tarif et (ör. JSONPlaceholder /users'a GET at), AI isteği doldursun"
+                            AutomationProperties.AutomationId="BtnRestAiUret" />
+                    <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="⏹ Durdur" Padding="14,6" Margin="8,0,0,0"
+                            Background="#C0392B" Foreground="White" BorderThickness="0" Visibility="Collapsed"
+                            Click="Durdur_Click" AutomationProperties.AutomationId="BtnRestDurdur" />
+                    <Button DockPanel.Dock="Right" x:Name="GonderDugmesi" Content="▶ Gönder" Padding="22,6"
+                            Click="Gonder_Click" Style="{StaticResource BirincilDugme}"
+                            AutomationProperties.AutomationId="BtnRestGonder" />
+                    <TextBox x:Name="UrlKutusu" Margin="0,0,8,0" VerticalContentAlignment="Center" Padding="8,5"
+                             FontFamily="Cascadia Mono, Consolas" FontSize="13.5"
+                             Text="https://" TextChanged="Url_Degisti" AutomationProperties.AutomationId="TxtRestUrl" />
+                </DockPanel>
+
+                <!-- istek sekmeleri: Params · Kimlik · Başlıklar · Body · Değişkenler (Postman sırası) -->
+                <TabControl Grid.Row="1" AutomationProperties.AutomationId="RestIstekSekmeleri">
+                    <TabItem Header="Params" ToolTip="URL'nin query string'i — URL ile ÇİFT YÖNLÜ eşzamanlı">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Margin="2,6,2,6" FontSize="11.5" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource SolukMetinFircasi}"
+                                       Text="URL ile ÇİFT YÖNLÜ senkron: URL'ye ?anahtar=değer yazdıkça bu tablo dolar; tabloda değiştirdikçe URL güncellenir. ✓ kaldırılan satır URL'den düşer ama silinmez. {{Ad}} yer tutucuları 🔤 Değişkenler'den dolar." />
+                            <DataGrid x:Name="ParamGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
+                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                      CellEditEnding="Param_HucreBitti"
+                                      AutomationProperties.AutomationId="RestParamGrid">
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Header="✓" Binding="{Binding Etkin}" Width="34" />
+                                    <DataGridTextColumn Header="Anahtar" Binding="{Binding Anahtar}" Width="*"
+                                                        ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                    <DataGridTextColumn Header="Değer" Binding="{Binding Deger}" Width="1.6*"
+                                                        ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                    <DataGridTextColumn Header="Açıklama" Binding="{Binding Aciklama}" Width="1.4*"
+                                                        ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+                    <!-- Postman'daki Authorization — eski ayrı bant artık sekme -->
+                    <TabItem Header="Kimlik" ToolTip="Basic / Bearer / API Key — Postman'daki Authorization">
+                        <StackPanel Margin="4,10,4,0">
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock DockPanel.Dock="Left" Text="Tür:" VerticalAlignment="Center" Width="86" />
+                                <ComboBox x:Name="KimlikTuru" Width="160" HorizontalAlignment="Left"
+                                          SelectionChanged="KimlikTuru_Secildi" AutomationProperties.AutomationId="CmbRestKimlik" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock DockPanel.Dock="Left" x:Name="Kullanici1Et" Text="Kullanıcı:" VerticalAlignment="Center"
+                                           Width="86" Visibility="Collapsed" />
+                                <TextBox x:Name="KullaniciKutusu" Width="300" HorizontalAlignment="Left"
+                                         VerticalContentAlignment="Center" Padding="6,4" Visibility="Collapsed"
+                                         AutomationProperties.AutomationId="TxtRestKullanici" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock DockPanel.Dock="Left" x:Name="Parola1Et" Text="Parola/Token:" VerticalAlignment="Center"
+                                           Width="86" Visibility="Collapsed" />
+                                <ComboBox DockPanel.Dock="Right" x:Name="ApiKeyKonum" Width="96" Margin="8,0,0,0" Visibility="Collapsed"
+                                          ToolTip="API anahtarı Başlık'a mı yoksa Query'ye mi eklensin"
+                                          AutomationProperties.AutomationId="CmbRestApiKeyKonum" />
+                                <TextBox x:Name="ParolaKutusu" VerticalContentAlignment="Center" Padding="6,4" Visibility="Collapsed"
+                                         FontFamily="Cascadia Mono, Consolas" AutomationProperties.AutomationId="TxtRestParola" />
+                            </DockPanel>
+                        </StackPanel>
+                    </TabItem>
+                    <TabItem Header="Başlıklar">
+                        <DataGrid x:Name="BaslikGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" Margin="0,6,0,0"
+                                  AutomationProperties.AutomationId="RestBaslikGrid">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding Etkin}" Width="34" />
+                                <DataGridTextColumn Header="Başlık" Binding="{Binding Anahtar}" Width="*"
+                                                    ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                <DataGridTextColumn Header="Değer" Binding="{Binding Deger}" Width="2*"
+                                                    ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                    <TabItem Header="Body" ToolTip="İstek gövdesi — soldan anahtar/değer gir ya da sağda JSON'u doğrudan yaz">
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" MinWidth="180" />
+                                <ColumnDefinition Width="3*" MinWidth="220" />
+                            </Grid.ColumnDefinitions>
+                            <DockPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock DockPanel.Dock="Top" Margin="2,0,2,6" FontSize="11.5" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource SolukMetinFircasi}"
+                                           Text="Anahtar/değer gir → JSON sağda canlı oluşur (sayı/true/false/null otomatik tiplenir). JSON'u elle düzeltirsen düz nesne olduğu sürece tablo da güncellenir." />
+                                <DataGrid x:Name="GovdeKvGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
+                                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          CellEditEnding="GovdeKv_HucreBitti"
+                                          AutomationProperties.AutomationId="RestGovdeKvGrid">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Anahtar" Binding="{Binding Anahtar}" Width="*"
+                                                            ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                        <DataGridTextColumn Header="Değer" Binding="{Binding Deger}" Width="*"
+                                                            ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                            <avalon:TextEditor Grid.Column="1" x:Name="Govde" ShowLineNumbers="True" WordWrap="False"
+                                               FontFamily="Cascadia Mono, Consolas" FontSize="13"
+                                               AutomationProperties.AutomationId="RestGovde" />
+                        </Grid>
+                    </TabItem>
+                    <TabItem Header="🔤 Değişkenler">
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,6,0,6">
+                                <Button DockPanel.Dock="Right" x:Name="DegiskenCozDugmesi" Content="🔄 SQL'den çöz" Padding="10,3"
+                                        Click="DegiskenCoz_Click"
+                                        ToolTip="SQL sütunu dolu değişkenleri çalıştırır, sonucun ilk hücresini Değer'e yazar"
+                                        AutomationProperties.AutomationId="BtnRestDegiskenCoz" />
+                                <TextBlock VerticalAlignment="Center" FontSize="11.5" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource SolukMetinFircasi}"
+                                           Text="URL/gövde/başlık/param/kimlikte {{Ad}} olarak kullanılır. SQL dolu satır ilk hücreden çözülür (🔄). Ortam kümeleri sol alttaki Ortam'dan kaydedilir/seçilir." />
+                            </DockPanel>
+                            <DataGrid x:Name="DegiskenGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
+                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                      AutomationProperties.AutomationId="RestDegiskenGrid">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Ad" Binding="{Binding Ad}" Width="*"
+                                                        ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                    <DataGridTextColumn Header="Değer" Binding="{Binding Deger}" Width="1.4*"
+                                                        ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                    <DataGridTextColumn Header="SQL (ilk hücre → Değer)" Binding="{Binding Sql}" Width="2*"
+                                                        ElementStyle="{StaticResource HucreGoster}" EditingElementStyle="{StaticResource HucreDuzen}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+                </TabControl>
+
+                <GridSplitter Grid.Row="2" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                              Background="Transparent" ResizeBehavior="PreviousAndNext" />
+
+                <!-- YANIT: sekmeler + renkli rozetler aynı hizada; altta SQLST araç sırası + ⋯ -->
+                <DockPanel Grid.Row="3">
+                    <!-- SQLST'ye özgü yanıt araçları — mockup: tek sıra, taşanlar ⋯ menüsünde -->
+                    <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,2">
+                        <Button DockPanel.Dock="Right" x:Name="TasmaDugmesi" Content="⋯" Width="34" Padding="0,3"
+                                Click="Tasma_Click" ToolTip="Diğer araçlar: Sabitle · Diff yorumla · URL kopyala/aç · JSON olarak aç"
+                                AutomationProperties.AutomationId="BtnRestTasma">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem x:Name="SabitleDugmesi" Header="📌 Sabitle (diff için ÖNCEKİ)" IsEnabled="False"
+                                              Click="Sabitle_Click" AutomationProperties.AutomationId="BtnRestSabitle" />
+                                    <MenuItem x:Name="DiffYorumlaDugmesi" Header="🤖 Diff yorumla (önceki ↔ şimdiki)" IsEnabled="False"
+                                              Click="DiffYorumla_Click" AutomationProperties.AutomationId="BtnRestDiff" />
+                                    <Separator />
+                                    <MenuItem x:Name="UrlKopyalaDugmesi" Header="⧉ URL'i kopyala (query dahil)"
+                                              Click="UrlKopyala_Click" AutomationProperties.AutomationId="BtnRestUrlKopyala" />
+                                    <MenuItem x:Name="UrlAcDugmesi" Header="⤵ Kopyalanmış URL'i aç"
+                                              Click="UrlAc_Click" AutomationProperties.AutomationId="BtnRestUrlAc" />
+                                    <MenuItem x:Name="JsonAcDugmesi" Header="🗎 Yanıtı ayrı pencerede aç"
+                                              Click="JsonAc_Click" AutomationProperties.AutomationId="BtnRestJsonAc" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <WrapPanel>
+                            <Button x:Name="TabloKaydetDugmesi" Content="🗄 Tabloya kaydet" Padding="10,3" Margin="0,0,6,0"
+                                    Click="TabloKaydet_Click" IsEnabled="False"
+                                    ToolTip="JSON yanıtından kolonları çıkarıp görsel tasarımcıda tablo oluşturur ve satırları aktarır"
+                                    AutomationProperties.AutomationId="BtnRestTabloKaydet" />
+                            <Button x:Name="DbKarsilastirDugmesi" Content="🔍 DB ile karşılaştır" Padding="10,3" Margin="0,0,6,0"
+                                    Click="DbKarsilastir_Click" IsEnabled="False"
+                                    ToolTip="JSON yanıtı bir SQL sorgusunun sonucuyla anahtar kolonda karşılaştırır"
+                                    AutomationProperties.AutomationId="BtnRestDbKarsilastir" />
+                            <Button x:Name="DegiskeneCikarDugmesi" Content="🔗 Değişkene çıkar" Padding="10,3" Margin="0,0,6,0"
+                                    Click="DegiskeneCikar_Click" IsEnabled="False"
+                                    ToolTip="Yanıttan JSON yol (ör. data.token) ile değer çıkarıp değişkene atar; sonraki istekte {{ad}}"
+                                    AutomationProperties.AutomationId="BtnRestDegiskeneCikar" />
+                            <Button x:Name="JsonPathDugmesi" Content="🔎 JSON path" Padding="10,3" Margin="0,0,6,0"
+                                    Click="JsonPath_Click" IsEnabled="False"
+                                    ToolTip="Yanıttan JSON yol ile bir alanı/alt-ağacı çıkarıp gösterir ve panoya kopyalar"
+                                    AutomationProperties.AutomationId="BtnRestJsonPath" />
+                            <Button x:Name="AiYorumlaDugmesi" Content="🤖 AI Yorumla" Padding="10,3" Margin="0,0,6,0"
+                                    Click="AiYorumla_Click" AutomationProperties.AutomationId="BtnRestAi" />
+                        </WrapPanel>
+                    </DockPanel>
+                    <Grid>
+                        <TabControl AutomationProperties.AutomationId="RestYanitSekmeleri">
+                            <TabItem>
+                                <TabItem.Header><TextBlock Text="Body" /></TabItem.Header>
+                                <avalon:TextEditor x:Name="Yanit" IsReadOnly="True" ShowLineNumbers="True" WordWrap="False"
+                                                   FontFamily="Cascadia Mono, Consolas" FontSize="13"
+                                                   AutomationProperties.AutomationId="RestYanit" />
+                            </TabItem>
+                            <TabItem>
+                                <TabItem.Header><TextBlock x:Name="BaslikSekmeBaslik" Text="Başlıklar" /></TabItem.Header>
+                                <DataGrid x:Name="YanitBaslikGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                                          CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          AutomationProperties.AutomationId="RestYanitBaslikGrid">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Başlık" Binding="{Binding Anahtar}" Width="*" />
+                                        <DataGridTextColumn Header="Değer" Binding="{Binding Deger}" Width="3*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+                            <TabItem>
+                                <TabItem.Header><TextBlock x:Name="CerezSekmeBaslik" Text="Çerezler" /></TabItem.Header>
+                                <DataGrid x:Name="CerezGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                                          CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          AutomationProperties.AutomationId="RestCerezGrid">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Ad" Binding="{Binding Anahtar}" Width="*" />
+                                        <DataGridTextColumn Header="Değer + öznitelikler" Binding="{Binding Deger}" Width="3*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+                        </TabControl>
+                        <!-- rozetler sekme başlıklarıyla AYNI hizada sağda (Postman) -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Margin="0,2,2,0">
+                            <Border x:Name="DurumRozet" Style="{StaticResource Rozet}" Background="#DFF2E1" Visibility="Collapsed">
+                                <TextBlock x:Name="DurumRozetMetin" FontFamily="Cascadia Mono, Consolas" FontWeight="Bold"
+                                           FontSize="12" Foreground="#1A7F37" AutomationProperties.AutomationId="LblRestDurumRozet" />
+                            </Border>
+                            <Border x:Name="SureRozet" Style="{StaticResource Rozet}" Background="{DynamicResource PanelZeminFircasi}"
+                                    BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" Visibility="Collapsed">
+                                <TextBlock x:Name="SureRozetMetin" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                                           Foreground="{DynamicResource IkincilFircasi}" />
+                            </Border>
+                            <Border x:Name="BoyutRozet" Style="{StaticResource Rozet}" Background="{DynamicResource PanelZeminFircasi}"
+                                    BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" Visibility="Collapsed">
+                                <TextBlock x:Name="BoyutRozetMetin" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                                           Foreground="{DynamicResource IkincilFircasi}" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

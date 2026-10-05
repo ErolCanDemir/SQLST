@@ -1,0 +1,1317 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:conv="clr-namespace:SQLST.App.Converters"
+                    xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+                    xmlns:search="clr-namespace:ICSharpCode.AvalonEdit.Search;assembly=ICSharpCode.AvalonEdit"
+                    xmlns:app="clr-namespace:SQLST.App">
+    <!-- Tutamak asgarisi Track.ViewportSize şişirmesiyle dayatılır (27 Ağu 2026) — gerekçe
+         DikeyKaydirici şablonunun üstündeki notta. Hedef boy matematiği TutamacAsgarisi'nde. -->
+    <conv:TutamacAsgarisiConverter x:Key="TutamacAsgarisi" />
+    <conv:TutamacViewportConverter x:Key="TutamacViewport" />
+    <!--
+      Merkezi tema STİLLERİ (S6 → V2-S10): renkler PaletAcik/PaletKoyu.xaml'a taşındı;
+      buradaki her renk başvurusu DynamicResource'tur ki palet takası (karanlık tema)
+      uygulama açıkken ANINDA işlesin. Yeni stil eklerken renkleri palet anahtarından al.
+    -->
+
+    <!-- BoolGorunurluk BURADA da tanımlı olmalı (2026-07-24): RayOgesi stili bunu StaticResource ile
+         kullanıyor; stil Tema.xaml içinde parse edilirken MainWindow.Resources'taki tanım ERİŞİLMEZ →
+         StaticResourceHolder istisnası (ana pencere açılmıyordu). Ayrı sözlük, çakışma yok. -->
+    <BooleanToVisibilityConverter x:Key="BoolGorunurluk" />
+
+    <!-- Tipografi: UI Segoe UI Variable (Win11; yoksa Segoe UI), veri/kod tek aralıklı (03 §5) -->
+    <FontFamily x:Key="ArayuzYazisi">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="KodYazisi">Cascadia Mono, Consolas, Courier New</FontFamily>
+    <sys:Double x:Key="YaziKucuk">11</sys:Double>
+    <sys:Double x:Key="YaziGovde">12.5</sys:Double>
+
+    <!-- Kod editörleri PİKSEL-KENETLİ çizer (kullanıcı 2026-09-17: "editörde yazılar çok karışık,
+         SSMS'de böyle değil"). WPF varsayılanı Ideal, harfleri piksel-altı konumlara yerleştirir —
+         13px kod yazısı yumuşak/bulanık görünür; SSMS/VS editörleri Display modu kullanır.
+         Font suçlu DEĞİLDİ (Cascadia Mono çözülüyor — ölçüldü); örtük stil TÜM TextEditor'lara
+         (SQL, LINQ, REST/SOAP, önizlemeler) tek yerden uygular. -->
+    <Style TargetType="avalon:TextEditor">
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <!-- ══ KLASİK (B) DÜZEN ŞABLONLARI (v23-S14 — Antrasit ailesi; kullanıcı onaylı mockup:
+         docs/mockup/antrasit-tema.html). Stiller bunlara {Binding Path=(app:TemaDurumu.Klasik)}
+         DataTrigger'ı ile geçer; diğer ailelerde hiç devreye girmez. Renkler yine paletten. -->
+
+    <!-- Klasik düğme: beyaz zemin, ince gri kenar, 2px köşe; hover açık vurgu zemin. -->
+    <ControlTemplate x:Key="KlasikDugmeSablonu" TargetType="Button">
+        <Border x:Name="k" Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                <Setter TargetName="k" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguBasiliFircasi}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="k" Property="Opacity" Value="0.5" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- Klasik araç düğmesi içeriği: renkli çip YOK — tek renk küçük ikon + metin. -->
+    <DataTemplate x:Key="KlasikAracIcerigi">
+        <StackPanel Orientation="Horizontal">
+            <Path Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                  Stretch="Uniform" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"
+                  Stroke="{DynamicResource ZayifMetinFircasi}" StrokeThickness="1.6" Fill="Transparent"
+                  StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+            <TextBlock Text="{Binding}" VerticalAlignment="Center" Foreground="{DynamicResource MetinFircasi}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Klasik anahtar: kapsül yerine KARE onay kutusu (işaretliyken turkuaz dolgu + ✓). -->
+    <ControlTemplate x:Key="KlasikAnahtarSablonu" TargetType="CheckBox">
+        <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Border x:Name="kutu" Width="14" Height="14" VerticalAlignment="Center" CornerRadius="1"
+                    BorderThickness="1" BorderBrush="{DynamicResource KaydiriciTutamacBasiliFircasi}"
+                    Background="{DynamicResource PencereZeminFircasi}" SnapsToDevicePixels="True">
+                <TextBlock x:Name="tik" Text="✓" Visibility="Collapsed" Foreground="White" FontSize="10.5"
+                           FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True" />
+        </StackPanel>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="kutu" Property="Background" Value="{DynamicResource VurguFircasi}" />
+                <Setter TargetName="kutu" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                <Setter TargetName="tik" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="kutu" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- Klasik KUTULU sekme: pasif gri şerit tonunda, seçili beyaz ve alttaki çizgiyi örter. -->
+    <ControlTemplate x:Key="KlasikSekmeSablonu" TargetType="TabItem">
+        <Border x:Name="k" Background="{DynamicResource PanelZeminFircasi}" BorderThickness="1,1,1,0"
+                BorderBrush="{DynamicResource KenarFircasi}" CornerRadius="2,2,0,0"
+                Margin="0,2,-1,0" SnapsToDevicePixels="True">
+            <ContentPresenter x:Name="basl" ContentSource="Header" Margin="{TemplateBinding Padding}"
+                              VerticalAlignment="Center" TextElement.FontWeight="Normal" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="k" Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+                <Setter TargetName="k" Property="Margin" Value="0,0,-1,-1" />
+                <Setter TargetName="basl" Property="Margin" Value="12,7,12,8" />
+                <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+                <Setter Property="Panel.ZIndex" Value="1" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- Düğme: sade flat; hover/pressed/disabled tutarlı.
+         Tooltip'ler ANINDA açılır (kullanıcı bulgusu 2026-07-24: ikon düğmelerde ad
+         hemen görünsün) ve pasif düğmede de gösterilir (neden pasif olduğu okunsun). -->
+    <Style TargetType="Button">
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="MinHeight" Value="26" />
+        <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="ToolTipService.InitialShowDelay" Value="120" />
+        <Setter Property="ToolTipService.BetweenShowDelay" Value="50" />
+        <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="k" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                            <Setter TargetName="k" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguBasiliFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="k" Property="Opacity" Value="0.45" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B) düzen: 2px köşeli klasik düğme (BasedOn stiller de devralır). -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="Template" Value="{StaticResource KlasikDugmeSablonu}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ☰ / ray üstü sade düğme (v22-S15 rötuşu — kullanıcı ekran görüntüsü 2026-09-23: genel
+         buton şablonunun hover'ı (VurguZemin + Vurgu çerçeve) koyu monokrom rayda açık indigo
+         KUTU basıyordu). Ray öğeleriyle aynı dil: şeffaf zemin, hover'da RayHoverFircasi. -->
+    <Style x:Key="RayGecisDugmesi" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="ToolTipService.InitialShowDelay" Value="120" />
+        <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="k" Background="Transparent" CornerRadius="8">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource RayHoverFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource RayHoverFircasi}" />
+                            <Setter TargetName="k" Property="Opacity" Value="0.8" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Birincil eylem düğmesi (Bağlan, Çalıştır): dolu turkuaz -->
+    <Style x:Key="BirincilDugme" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{DynamicResource VurguFircasi}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="{DynamicResource VurguKoyuFircasi}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): Çalıştır dahil birincil düğme de DOLGUSUZ — beyaz + gri kenar. -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+                <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+                <Setter Property="FontWeight" Value="Normal" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ══ VEKTÖR İKON SETİ (2026-07-24, kullanıcı bulgusu: emoji ikonlar mockup'a hiç
+         benzemiyordu — rengârenk, tutarsız, arama büyüteci çıkmıyordu). Emoji EMEKLİ; her ikon
+         24×24 kutuda tek-çizgi geometridir → tema rengine (Foreground) boyanır, açık/koyu ve
+         petrol vurgusuyla tutarlı. Path'ler stroke ile çizilir (Fill yok). -->
+    <StreamGeometry x:Key="Ikon.Ara">M4,10 A6,6 0 1 1 16,10 A6,6 0 1 1 4,10 Z M14.5,14.5 L20,20</StreamGeometry>
+    <!-- Veri Arama (2026-08-03): veri satırları + büyüteç — Kod Arama'nın düz büyütecinden ayrışsın -->
+    <StreamGeometry x:Key="Ikon.VeriAra">M3,5 L21,5 M3,10 L11,10 M3,15 L9,15 M3,20 L9,20 M12,14 A4.5,4.5 0 1 1 21,14 A4.5,4.5 0 1 1 12,14 Z M19.5,17.5 L23,21</StreamGeometry>
+    <!-- Huni (filtre): Görsel Sorgu kolon satırındaki WHERE düğmesi (#2, 2026-07-25) -->
+    <StreamGeometry x:Key="Ikon.Huni">M3,4 L21,4 L14,12 L14,19 L10,17 L10,12 Z</StreamGeometry>
+    <!-- Paket (aktarım, v12-S2): 3B kutu -->
+    <StreamGeometry x:Key="Ikon.Paket">M12,3 L20,7 L20,17 L12,21 L4,17 L4,7 Z M4,7 L12,11 L20,7 M12,11 L12,21</StreamGeometry>
+    <!-- İçe aktar (v13-S2): tepsiye inen ok -->
+    <StreamGeometry x:Key="Ikon.IceAktar">M12,3 L12,13 M7,8 L12,13 L17,8 M4,16 L4,20 L20,20 L20,16</StreamGeometry>
+    <!-- SOAP fişi (v14-S2): servis ucuna bağlanma -->
+    <StreamGeometry x:Key="Ikon.Soap">M9,2 L9,7 M15,2 L15,7 M6,7 L18,7 L18,11 A6,6 0 0 1 6,11 Z M12,17 L12,22</StreamGeometry>
+    <!-- 🌐 REST İstemcisi (v20-S8): küre (çember + yatay çap + iki meridyen) -->
+    <StreamGeometry x:Key="Ikon.Rest">M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 M2,12 H22 M12,2 C6,7 6,17 12,22 M12,2 C18,7 18,17 12,22</StreamGeometry>
+    <!-- 🔁 LINQ → SQL (v20-S11): karşılıklı iki ok (çeviri) -->
+    <StreamGeometry x:Key="Ikon.Linq">M3,8 H17 M14,4.5 L17,8 L14,11.5 M21,16 H7 M10,12.5 L7,16 L10,19.5</StreamGeometry>
+    <!-- 📂 Dosya Aç (v20-S14): klasör -->
+    <StreamGeometry x:Key="Ikon.DosyaAc">M3,7 L3,18 L21,18 L21,9 L11.5,9 L9.5,7 Z</StreamGeometry>
+    <!-- AI kıvılcımı (asistan, v11-S7 — kullanıcı isteği: robot yerine daha güzel bir marka):
+         büyük dört-uçlu yıldız + sağ üstte küçük eşlikçi (modern "AI" imzası). -->
+    <StreamGeometry x:Key="Ikon.Robot">M11,4 L13.2,9.8 L19,12 L13.2,14.2 L11,20 L8.8,14.2 L3,12 L8.8,9.8 Z M18.5,2.5 L19.3,4.7 L21.5,5.5 L19.3,6.3 L18.5,8.5 L17.7,6.3 L15.5,5.5 L17.7,4.7 Z</StreamGeometry>
+
+    <!-- SQLST LOGOSU (2026-07-25 Command Deck kimliği; v22-S15 rötuşu 2026-09-23 — kullanıcı:
+         "moru daha uygun bir renge çekelim"): karo İNDİGO-MOR'dan VS/SSMS MAVİ ailesine döndü
+         (yeni sistem tasarımının kimliği), amber şimşek MARKA olarak kaldı. Beyaz veritabanı
+         silindiri aynı. Vektör (DrawingImage) — ray başlığı, bağlantı marka bandı ve sqlst.ico
+         buradan üretilir. Renkler SABİT (marka); iki temada da aynı görünür. -->
+    <DrawingImage x:Key="SqlstLogo">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <!-- Karo -->
+                <GeometryDrawing>
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,64,64" RadiusX="14" RadiusY="14" />
+                    </GeometryDrawing.Geometry>
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#2E9BE6" Offset="0" />
+                            <GradientStop Color="#0078D4" Offset="0.55" />
+                            <GradientStop Color="#005A9E" Offset="1" />
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+                <!-- Silindir gövdesi (beyaz) -->
+                <GeometryDrawing Brush="#FFFFFF"
+                                 Geometry="M15,21 A17,7 0 0 1 49,21 L49,45 A17,7 0 0 1 15,45 Z" />
+                <!-- Üst kapak (açık mavi ton — derinlik) -->
+                <GeometryDrawing Brush="#DCEDFB">
+                    <GeometryDrawing.Geometry>
+                        <EllipseGeometry Center="32,21" RadiusX="17" RadiusY="7" />
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <!-- Disk ayırıcı yaylar (mavi, ince) -->
+                <GeometryDrawing Geometry="M15,29 A17,7 0 0 0 49,29">
+                    <GeometryDrawing.Pen><Pen Brush="#AFD5F2" Thickness="2.2" /></GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Geometry="M15,37 A17,7 0 0 0 49,37">
+                    <GeometryDrawing.Pen><Pen Brush="#AFD5F2" Thickness="2.2" /></GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <!-- Amber şimşek (enerji/hız — silindirin üstünden geçer, beyaz konturla ayrışır) -->
+                <GeometryDrawing Brush="#F59E0B"
+                                 Geometry="M38,10 L23,35 L31,35 L26,54 L44,27 L35,27 Z">
+                    <GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="2" /></GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+    <StreamGeometry x:Key="Ikon.Arti">M12,5 V19 M5,12 H19</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.GorseleCevir">M3,6 H11 V16 H3 Z M3,9.5 H11 M7,6 V16 M14,11 H20.5 M17.5,8 L21,11.5 L17.5,15</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.GorselSorgu">M3,4 H10 V9 H3 Z M14,15 H21 V20 H14 Z M6.5,9 V11.5 A2,2 0 0 0 8.5,13.5 H14</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Harita">M4.4,6 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0 M16.4,8 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0 M9.4,18 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0 M7.4,6.7 L16.6,7.9 M6.7,7.5 L10.3,16.4 M17,9.5 L12.2,16.5</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Yonetim">M4,7 H20 M4,12 H20 M4,17 H20 M7.4,7 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0 M13.4,12 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0 M6.4,17 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Karsilastir">M4,9 H17 M14,6 L17,9 L14,12 M20,15 H7 M10,12 L7,15 L10,18</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Parcalar">M9,7 L4,12 L9,17 M15,7 L20,12 L15,17</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Log">M4,20 H20 M7,20 V13 M12,20 V8 M17,20 V16</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Kisayol">M3,7 H21 V17 H3 Z M6,10.5 H7 M9.5,10.5 H10.5 M13,10.5 H14 M16.5,10.5 H17.5 M8,14 H16</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Tema">M20,13.5 A7.5,7.5 0 1 1 10.5,4 A6,6 0 0 0 20,13.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Cikis">M14,5 H18 A1,1 0 0 1 19,6 V18 A1,1 0 0 1 18,19 H14 M4,12 H15 M11,8 L15,12 L11,16</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Veritabani">M5,6 A7,2.4 0 0 0 19,6 A7,2.4 0 0 0 5,6 M5,6 V17 A7,2.4 0 0 0 19,17 V6 M5,11.5 A7,2.4 0 0 0 19,11.5</StreamGeometry>
+    <!-- Editör araç çubuğu ikonları (2026-07-24, kullanıcı isteği: butonlar renkli güzel ikonlarla) -->
+    <StreamGeometry x:Key="Ikon.Play">M8,5 L18,12 L8,19 Z</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Stop">M7.5,7.5 H16.5 V16.5 H7.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Bicim">M4,6 H20 M4,10 H14 M4,14 H18 M4,18 H11</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Plan">M4,20 H20 M8,20 V13 M12,20 V8 M16,20 V15</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Yenile">M18.6,9.2 A7,7 0 1 1 16.6,6.4 M18.6,9.2 H14.4 M18.6,9.2 V5</StreamGeometry>
+    <!-- ⏪ Geri Al: saat + geri dönen ok (uçuş kaydedici, V15) -->
+    <StreamGeometry x:Key="Ikon.GeriAl">M8,7 L4,11 L8,15 M4,11 H15 A5,5 0 0 1 15,21 H10</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Kalkan">M12,3.2 L19,6 V11 C19,15.6 15.6,18.9 12,20.6 C8.4,18.9 5,15.6 5,11 V6 Z M8.8,11.4 L11,13.6 L15.2,9.2</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Kilit">M6,10.5 H18 V19.5 H6 Z M8.5,10.5 V7 A3.5,3.5 0 0 1 15,5.4</StreamGeometry>
+    <StreamGeometry x:Key="Ikon.Menu">M4,7 H20 M4,12 H20 M4,17 H20</StreamGeometry>
+
+    <!-- Komut barı ikon düğmesi: Tag geometrisini çizer (yalnız-ikon; ad tooltip'te). Hover petrol. -->
+    <Style x:Key="SeritIkonu" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource IkincilFircasi}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="ToolTipService.InitialShowDelay" Value="120" />
+        <Setter Property="ToolTipService.BetweenShowDelay" Value="50" />
+        <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="k" Background="{TemplateBinding Background}" CornerRadius="6">
+                        <Path Data="{TemplateBinding Tag}" Stretch="Uniform" Width="17" Height="17"
+                              Stroke="{TemplateBinding Foreground}" StrokeThickness="1.7"
+                              StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                            <Setter Property="Foreground" Value="{DynamicResource VurguFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguBasiliFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Sol RAY öğesi (Command Deck 2026-07-24): renkli çip (Background) + Path ikon (Tag, beyaz) +
+         etiket (Content). Büyük özellikler İRİ ve ETİKETLİ — kullanıcı "öne çıksın" isteği. Hover
+         satır zemini RayHover'a döner; çip rengi sabit kalır. -->
+    <Style x:Key="RayOgesi" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Margin" Value="6,1" />
+        <Setter Property="ToolTipService.InitialShowDelay" Value="150" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <!-- Padding 7,6→7,5 + çip 30→29 (v20-S14 rötuşu, 2026-08-08): Dosya Aç eklenince
+                         ray 1080p'de taşıp kaydırma çubuğu çıkarıyordu. Kullanıcı ayarı: "eski
+                         hallerinden ÇOK AZ küçülsünler" — öğe başına yalnız 3px inceltildi. -->
+                    <Border x:Name="row" Background="Transparent" CornerRadius="11" Padding="7,5" SnapsToDevicePixels="True">
+                        <DockPanel x:Name="icerik">
+                            <Border Width="29" Height="29" CornerRadius="9" DockPanel.Dock="Left"
+                                    Background="{TemplateBinding Background}">
+                                <Grid>
+                                    <!-- v22-S15 (VS paleti, mockup 6 sadakati): örtü, çipin RENKLİ zeminini
+                                         palet isterse kapatır → ikonlar VS Activity Bar gibi monokrom kalır.
+                                         Diğer ailelerde Transparent — görünüm birebir eski. Negatif margin:
+                                         yuvarlak köşe kenarındaki renk sızıntısını da örter (Border kırpmaz). -->
+                                    <Border Margin="-2" Background="{DynamicResource RayCipOrtusuFircasi}" />
+                                    <Path Data="{TemplateBinding Tag}" Stretch="Uniform" Width="17" Height="17"
+                                          Stroke="{DynamicResource RayIkonFircasi}" StrokeThickness="1.8" Fill="Transparent"
+                                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <!-- Etiket ray KAPALIYKEN gizli (yalnız çip görünür) — kullanıcı isteği 2026-07-24 -->
+                            <ContentPresenter VerticalAlignment="Center" Margin="11,0,0,0"
+                                              TextElement.Foreground="{DynamicResource RayMetinFircasi}"
+                                              TextElement.FontSize="12.8" TextElement.FontWeight="SemiBold"
+                                              Visibility="{Binding DataContext.RayGenisMi, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolGorunurluk}}" />
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="row" Property="Background" Value="{DynamicResource RayHoverFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                        <!-- Ray KAPALIYKEN çip satırda ORTALANIR (kullanıcı bulgusu 2026-08-03:
+                             sola yapışık çip + sağda ölü boşluk "saçma" görünüyordu). -->
+                        <DataTrigger Binding="{Binding DataContext.RayGenisMi, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                            <Setter TargetName="icerik" Property="HorizontalAlignment" Value="Center" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Editör araç çubuğu düğmesi — CANLI ÇİP sürümü (v11-S7, kullanıcı isteği 2026-07-25 gece:
+         "logolar sol menüdekiler gibi daha canlı olsun"): Tag=geometri, Foreground=ÇİPİN RENGİ.
+         İkon, ray çipleriyle aynı dilde: renkli yuvarlak karo içinde BEYAZ çizim; yazı nötr
+         (MetinFircasi) — renkli metin okunaklılık sorununu da çözer (eski tasarım şikayeti). -->
+    <Style x:Key="AracDugmesi" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="20" Height="20" CornerRadius="5" Margin="0,0,7,0"
+                                VerticalAlignment="Center"
+                                Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}">
+                            <Path Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  Stretch="Uniform" Width="12" Height="12"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Stroke="White" StrokeThickness="1.6" Fill="Transparent"
+                                  StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Border>
+                        <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MetinFircasi}" />
+                    </StackPanel>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): renkli çip yerine tek renk küçük ikon. -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="ContentTemplate" Value="{StaticResource KlasikAracIcerigi}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- İç arama simgesi (büyüteç): arama kutularının içine konur (üst komut kutusu + gezgin). -->
+    <Style x:Key="AramaSimgesi" TargetType="Path">
+        <Setter Property="Data" Value="{StaticResource Ikon.Ara}" />
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Stroke" Value="{DynamicResource SolukMetinFircasi}" />
+        <Setter Property="StrokeThickness" Value="1.7" />
+        <Setter Property="StrokeStartLineCap" Value="Round" />
+        <Setter Property="StrokeEndLineCap" Value="Round" />
+        <Setter Property="Fill" Value="Transparent" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Komut barı grup ayracı: ince dikey çizgi -->
+    <Style x:Key="SeritAyraci" TargetType="Rectangle">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Fill" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="Margin" Value="5,10" />
+    </Style>
+
+    <!-- Grid araç çubuğu düğmeleri: küçük, çerçevesiz -->
+    <!-- v20-S21 saha m.18: mini butonlar (grid şeridi vb.) grid zemininde eriyordu — artık
+         temanın VURGU ailesinden "chip" görünümü: vurgu-zemin dolgu + vurgu metin/kenar.
+         VurguFircasi her palette VurguZemin üstünde okunur (açık: koyu mor/açık lila,
+         koyu: açık mor/koyu lacivert). Hover bir ton koyulaşır, basılıda tam vurguya döner. -->
+    <Style x:Key="MiniDugme" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="Padding" Value="7,1" />
+        <Setter Property="FontSize" Value="{StaticResource YaziKucuk}" />
+        <Setter Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource VurguKoyuFircasi}" />
+        <!-- v22-S1 (m.8 kontrast bekçisi): chip yazısı artık PALETİN kendi kararı. Ölçüm: AÇIK
+             AMBER'de VurguFircasi/VurguZemin yalnız 2,82:1 (eşik 3:1) — açık temada KOYU vurgu
+             gerekiyor; KOYU KOR'da ise tersi (VurguKoyu/VurguZemin 2,55:1) — koyu temada PARLAK
+             vurgu gerekiyor. Tek bir mevcut anahtar ikisini birden karşılamadığı için paletlere
+             VurguZeminMetinFircasi eklendi (açıkta koyu ton, koyuda parlak ton). -->
+        <Setter Property="Foreground" Value="{DynamicResource VurguZeminMetinFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="k" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguBasiliFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguFircasi}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="k" Property="Opacity" Value="0.45" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): sonuç şeridi düğmeleri de beyaz + gri kenar (renkli chip değil). -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+                <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Giriş kutuları (Tasarım 1 · T3, 2026-07-24): 4px köşe + odak/hover'da petrol kenar.
+         Varsayılan şablon köşe veremediğinden sade retemplate (PART_ContentHost korunur). -->
+    <ControlTemplate x:Key="GirisKutusuSablonu" TargetType="{x:Type Control}">
+        <Border x:Name="k" Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+            <!-- Dikey hiza (kullanıcı bulgusu 2026-07-30, ÖLÇÜMLE çözüldü): ASIL suçlu Padding'in İKİ KEZ
+                 uygulanmasıydı — WPF, TextBox.Padding'i PART_ContentHost'un KENDİ Padding'ine zaten
+                 aktarıyor (ölçüm: ScrollContentPresenter Margin=6,3 sv.Padding'den); şablondaki
+                 Margin="{TemplateBinding Padding}" aynı payı İKİNCİ kez yiyip 17.3px'lik metin satırını
+                 12px'e sıkıştırarak KIRPIYORDU. Margin kaldırıldı — tek pay kaldı, metin sığar/ortalanır.
+                 VerticalAlignment: ScrollViewer içerik yüksekliğine küçülüp kutuda ortalanır
+                 (ScrollViewer.VerticalContentAlignment ScrollContentPresenter'da uygulanmaz — etkisizdi). -->
+            <ScrollViewer x:Name="PART_ContentHost"
+                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="k" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="k" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="k" Property="Opacity" Value="0.5" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style TargetType="TextBox">
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="Background" Value="{DynamicResource GirisZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CaretBrush" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontFamily" Value="{StaticResource ArayuzYazisi}" />
+        <Setter Property="Template" Value="{StaticResource GirisKutusuSablonu}" />
+    </Style>
+
+    <Style TargetType="PasswordBox">
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource GirisZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CaretBrush" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="Template" Value="{StaticResource GirisKutusuSablonu}" />
+    </Style>
+
+    <!-- 📅 DatePicker (v20-S21 saha m.5): varsayılan WPF şablonu beyaz — koyu temada sırıtıyordu.
+         Metin kutusu kısmı sade retemplate (watermark yok; tarih formatlı görünür); takvim POPUP'ı
+         sistem şablonunda kalır (açılır pencere — okunur, retemplate maliyetine değmez). -->
+    <Style TargetType="DatePicker">
+        <Setter Property="Background" Value="{DynamicResource GirisZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style TargetType="DatePickerTextBox">
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DatePickerTextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" Background="Transparent"
+                                  VerticalAlignment="Center" Margin="4,0,0,0" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ComboBox: sistem şablonu koyu temada okunmuyordu (kullanıcı bulgusu) — sade retemplate -->
+    <Style TargetType="ComboBox">
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="MinHeight" Value="26" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="Background" Value="{DynamicResource GirisZeminFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton Focusable="False" ClickMode="Press"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="z" Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <TextBlock Text="▾" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                   Margin="0,0,7,0" Foreground="{DynamicResource IkincilFircasi}" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="z" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter x:Name="SecimSunucu" Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
+                                          IsHitTestVisible="False" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        <!-- IsEditable desteği (v12-S5): PART_EditableTextBox olmadan editable combo
+                             yazılanı GÖSTERMİYORDU (LogAnaliz 2026-07-25'te bu yüzden non-editable'a
+                             kaçmıştı). Ad SÖZLEŞMEDİR — ComboBox iç mantığı bu parçayı arar. -->
+                        <!-- Style=x:Null ŞART: global TextBox stili (GirisKutusuSablonu) kendi Border'ını
+                             çizip metni alta kaydırıyordu (render kanıtı) — parça sistem şablonuyla kalır. -->
+                        <TextBox x:Name="PART_EditableTextBox" Style="{x:Null}" Visibility="Collapsed"
+                                 Focusable="True" Margin="1,1,20,1" Padding="4,0,0,0" BorderThickness="0"
+                                 Background="Transparent" VerticalContentAlignment="Center"
+                                 Foreground="{TemplateBinding Foreground}"
+                                 CaretBrush="{DynamicResource MetinFircasi}" />
+                        <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                               AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade">
+                            <Border Background="{DynamicResource PencereZeminFircasi}"
+                                    BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" CornerRadius="4"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="SecimSunucu" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Padding" Value="7,4" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="k" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="CheckBox">
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+    </Style>
+
+    <!-- Kapsül anahtar (Tasarım 1 · T3, 2026-07-24 — mockup'taki toggle): araç çubuğundaki
+         NOLOCK / Güvenli yazma / Oto yenile için. Açıkken petrol ray + sağa kayan top;
+         etiket rengi kutunun kendi stilinden gelir (yeşil/kırmızı tetikler korunur). -->
+    <Style x:Key="AnahtarKutusu" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource ZayifMetinFircasi}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTipService.InitialShowDelay" Value="120" />
+        <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Border x:Name="ray" Width="30" Height="16" CornerRadius="8" VerticalAlignment="Center"
+                                Background="{DynamicResource KenarFircasi}" SnapsToDevicePixels="True">
+                            <Ellipse x:Name="top" Width="12" Height="12" Fill="White"
+                                     HorizontalAlignment="Left" Margin="2,0" />
+                        </Border>
+                        <ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="ray" Property="Background" Value="{DynamicResource VurguFircasi}" />
+                            <Setter TargetName="top" Property="HorizontalAlignment" Value="Right" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ray" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): kapsül yerine kare onay kutusu. -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="Template" Value="{StaticResource KlasikAnahtarSablonu}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- İpucu ve sağ tık menüsü kendi popup ağacında açılır: pencere kalıtımı ulaşmaz,
+         stil verilmezse SİSTEM AÇIK görünümüyle gelirler (koyu tema 3. tur, 2026-07-18). -->
+    <!-- ToolTip: yuvarlak köşeli + gölgeli kart (2026-07-28). Düz köşeli varsayılan kutu, özellikle
+         AvalonEdit aramasının "Eşleşme bulunamadı" mesajında kaba duruyordu. Retemplate + Margin
+         (gölgeye yer) + AllowsTransparency'li popup ile temiz bir yüzen çip elde edilir. -->
+    <Style TargetType="ToolTip">
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Margin="4" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                            Background="{DynamicResource PanelZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#000000" Opacity="0.28" BlurRadius="12" ShadowDepth="2" Direction="270" />
+                        </Border.Effect>
+                        <ContentPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Retemplate şart: varsayılan şablon soldaki simge şeridini sabit açık griyle çizer. -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource PanelZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1" Padding="2">
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- MenuItem retemplate (v19-S9 cila, kullanıcı bulgusu 2026-08-03): varsayılan şablon ALT MENÜ
+         popup'ını ve vurguyu SİSTEM renkleriyle çizer — koyu temada beyaz popup üstünde beyaz yazı
+         okunmuyordu. Artık popup zemini/vurgu/ok/✓ temadan gelir: koyuda yazı beyaz, açıkta siyah. -->
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="kap" Background="Transparent" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,6,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="isaret" Text="✓" Visibility="Collapsed" FontWeight="Bold"
+                                           Foreground="{DynamicResource VurguFircasi}" Margin="0,0,5,0" />
+                                <ContentPresenter x:Name="ikon" ContentSource="Icon" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                            <TextBlock x:Name="ok" Grid.Column="2" Text="▸" Margin="12,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource IkincilFircasi}" Visibility="Collapsed" />
+                            <Popup x:Name="altMenu" Placement="Right" HorizontalOffset="2" VerticalOffset="-4"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border Background="{DynamicResource PanelZeminFircasi}" MinWidth="190"
+                                        BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1"
+                                        CornerRadius="4" Padding="3">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Icon" Value="{x:Null}">
+                            <Setter TargetName="ikon" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="isaret" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="HasItems" Value="True">
+                            <Setter TargetName="ok" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="kap" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Menü ayıracı SeparatorStyleKey ile aranır — örtük Separator stili menülere işlemez. -->
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Rectangle Height="1" Margin="4,3" Fill="{DynamicResource KenarFircasi}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- DİKKAT: örtük TextBlock stili KOYMAYIN — ContentPresenter'ın ürettiği
+         TextBlock'lara da uygulanıp Foreground KALITIMINI kırar (şerit düğmelerinin
+         beyaz yazısı karardı — kullanıcı bulgusu 2026-07-17). Metin rengi Window'dan
+         kalıtımla iner; istisnalar kendi Foreground'unu açıkça yazar. -->
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource MetinFircasi}" />
+    </Style>
+
+    <!-- Sekme: seçiliyken alt vurgu çizgisi -->
+    <Style TargetType="TabItem">
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Foreground" Value="{DynamicResource IkincilFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="k" Background="Transparent" BorderThickness="0,0,0,2"
+                            BorderBrush="Transparent" Margin="0,0,2,0">
+                        <ContentPresenter x:Name="basl" ContentSource="Header" Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center" TextElement.FontWeight="Normal" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource ZeminAcikFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="k" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                            <Setter TargetName="basl" Property="TextElement.FontWeight" Value="SemiBold" />
+                            <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): kutulu sekme — sorgu sekmeleri ve Sonuçlar/Mesajlar birlikte. -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="Template" Value="{StaticResource KlasikSekmeSablonu}" />
+                <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="TabControl">
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+    </Style>
+
+    <!-- Sonuç grid'i: tek aralıklı yazı, sakin başlıklar, ince satırlar -->
+    <Style TargetType="DataGrid">
+        <Setter Property="FontFamily" Value="{StaticResource KodYazisi}" />
+        <Setter Property="FontSize" Value="{StaticResource YaziGovde}" />
+        <!-- Veri hücreleri asla kalın olmasın: seçili sekmenin SemiBold'u içeriğe miras kalmasın -->
+        <Setter Property="FontWeight" Value="Normal" />
+        <!-- 🧱 v22-S4 saha turu-4 m.8 — ÇÖKMENİN KANITLI DÜZELTMESİ. Beş WER dökümünün ikisi okundu:
+             ikisi de StackOverflowException, UI thread'i WPF MEASURE zincirinde
+             (TextBlock.MeasureOverride → FormatLine → GetGlyphs). Sahanın faz izi de aynı bölgeyi
+             gösterdi: "grid-hazir"da kalıyor, "yerlesim-bitti" hiç gelmiyor; 33.964 satır × 43
+             kolonluk KonfigurasyonParametre'de UI 832 sn bloke + 6,4 GB yığın. Kök: kolon genişliği
+             SINIRSIZ (Auto) — dev config metinleri ölçüm fırtınası yaratıyor. 400 px tavanla ölçüm
+             alanı bağlanır; kolon elle yine genişletilebilir, tam değer çift tıkta. -->
+        <Setter Property="MaxColumnWidth" Value="400" />
+        <!-- Recycling: kaydırmada satır konteynerleri yeniden kullanılır — dev sonuçta hem daha az
+             tahsis hem daha akıcı kaydırma (varsayılan Standard her seferinde yeniden kurar). -->
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+        <!-- 22→25 (Tasarım 1, 2026-07-24): kullanıcı "orta/dengeli" yoğunluk seçti — satırlar nefes alır -->
+        <Setter Property="RowHeight" Value="25" />
+        <!-- v23-S14: ızgara AİLE BAŞINA palettedir — Antrasit klasik TAM IZGARA (dikey+yatay,
+             alternatif satırsız), diğer aileler eskisi gibi yalnız yatay çizgi + kendi renkleri. -->
+        <Setter Property="GridLinesVisibility" Value="{DynamicResource GridCizgiGorunurlugu}" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource GridCizgiFircasi}" />
+        <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource GridCizgiFircasi}" />
+        <Setter Property="AlternatingRowBackground" Value="{DynamicResource GridAlternatifSatirFircasi}" />
+        <Setter Property="AlternationCount" Value="2" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="RowBackground" Value="{DynamicResource PencereZeminFircasi}" />
+        <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): grid yazısı Segoe UI (kod fontu değil), satırlar biraz sıkı. -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="FontFamily" Value="{StaticResource ArayuzYazisi}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="RowHeight" Value="22" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Tasarım 1 (2026-07-24): başlık metni soluk + yalnız ALT çizgi (dikey ayraç kalktı) —
+         başlık satırı veriden geride dursun, göz veriye gitsin. -->
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource PanelZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource IkincilFircasi}" />
+        <Setter Property="FontFamily" Value="{StaticResource ArayuzYazisi}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="{StaticResource YaziKucuk}" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="BorderBrush" Value="{DynamicResource GridCizgiFircasi}" />
+        <!-- v23-S14: Antrasit'te başlıkta kolon ayraçları (0,0,1,1); diğer ailelerde yalnız alt çizgi. -->
+        <Setter Property="BorderThickness" Value="{DynamicResource GridBaslikKenarKalinligi}" />
+        <Style.Triggers>
+            <!-- v23-S14 klasik (B): sade başlık — beyaz zemin, kalın değil, açık ayraçlar. -->
+            <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+                <Setter Property="Padding" Value="6,4" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Tasarım 1 (2026-07-24): satır hover'ı — fare hangi satırdaysa yumuşak petrol zemin.
+         Seçim renklerini ezmez (seçili satırda SystemColors.Highlight kazanır). -->
+    <Style TargetType="DataGridRow">
+        <Style.Triggers>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsMouseOver" Value="True" />
+                    <Condition Property="IsSelected" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="TreeView">
+        <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+    </Style>
+
+    <!-- Ağaç öğesi (Tasarım 1 · T3): biraz daha ferah dolgu — seçim renkleri SystemColors
+         override'larından (petrol aile) gelir; retemplate gerekmez. -->
+    <Style TargetType="TreeViewItem">
+        <Setter Property="Padding" Value="3,2" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+    </Style>
+
+    <!-- v22-S15: durum çubuğu ARTIK KENDİ palet anahtarını kullanır (eski ZeminAcik/Ikincil değil) —
+         VS paleti çubuğu SSMS'in imza mavisine boyar; diğer ailelerde değerler eskisiyle birebir. -->
+    <Style TargetType="StatusBar">
+        <Setter Property="Background" Value="{DynamicResource DurumCubuguZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource DurumCubuguMetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="FontSize" Value="{StaticResource YaziKucuk}" />
+    </Style>
+
+    <!-- GridSplitter (v19-S21, kullanıcı bulgusu 2026-08-04): eski hâli TÜM bölme çubuklarına
+         KenarFircasi zemin veriyordu → 6px'lik AÇIK navy BANT, maximized pencerelerde (SOAP
+         zarf/yanıt, operasyon/geçmiş vb.) sırıtıyordu. Artık normalde ŞEFFAF (görünmez ama
+         sürüklenebilir hit-alanı), yalnız FARE ÜSTÜNDEYKEN ince vurgu → keşfedilebilir ama sessiz.
+         Panelleri etiketler/kenarlıklar zaten ayırır. -->
+    <Style TargetType="GridSplitter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Border x:Name="govde" Background="Transparent" SnapsToDevicePixels="True" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="govde" Property="Background" Value="{DynamicResource VurguFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+    </Style>
+
+    <!-- NOT (T3, 2026-07-24): ListBoxItem stili AŞAĞIDA zaten var (V4-S3 bölümünde, sol vurgu
+         şeritli) — buraya ikinci kez EKLEME: örtük stil anahtarı çakışır, uygulama açılışta
+         XamlParseException ile çöker (yaşandı). -->
+
+    <!-- ══ V4-S3: tema krom borçları ═══════════════════════════════════════════
+         Bu üç öğe 3. tur tema denetiminde bilinçli ertelenmişti. Ortak sorun:
+         WPF'in varsayılan (Aero2) şablonları renklerini KENDİ içlerinden alır ve
+         DynamicResource'larımızı dinlemez — koyu temada açık gri lekeler kalıyordu.
+         Çözüm: bu üçünü kendi şablonlarımızla yeniden kuruyoruz.                  -->
+
+    <!-- Kaydırıcı: ok düğmesiz, yalnız tutamaç (modern editör deseni).
+         Sayfa düğmeleri görünmez ama TIKLANABİLİR kalır — boşluğa tıklayınca
+         sayfa atlama davranışı korunur. -->
+    <Style x:Key="KaydiriciSayfaDugmesi" TargetType="RepeatButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <!-- Saydam ama hit-test alan: Background="Transparent" şart -->
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="KaydiriciTutamaci" TargetType="Thumb">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <!-- v22-S4 saha turu-4 m.7 (kullanıcı: "scroll'umuz çok küçük, biraz daha
+                         büyütelim"): şerit 12 px + tutamaç Margin=2 idi → görünen tutamaç yalnız
+                         8 px kalıyordu. Şerit 14 px'e, tutamaç 10 px'e çıkarıldı; çubuğun ÜSTÜNE
+                         gelince tutamaç 12 px'e genişler — boştayken ince ve sessiz, tutmak
+                         isteyince kalın (VS Code/Edge deseni). -->
+                    <Border x:Name="govde" Margin="2" CornerRadius="5"
+                            Background="{DynamicResource KaydiriciTutamacFircasi}" />
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Value="True"
+                                     Binding="{Binding IsMouseOver,
+                                               RelativeSource={RelativeSource AncestorType=ScrollBar}}">
+                            <Setter TargetName="govde" Property="Margin" Value="1" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="govde" Property="Background"
+                                    Value="{DynamicResource KaydiriciTutamacUstuFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="govde" Property="Background"
+                                    Value="{DynamicResource KaydiriciTutamacBasiliFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 🖱 TUTAMAÇ ASGARİSİ = Track.ViewportSize ŞİŞİRME (27 Ağu 2026, PİKSEL KANITLI kök neden).
+         ÜÇ TUR boyunca tutamağa MinHeight verildi (24→36→72→160) ve HİÇBİRİ ekranda görünmedi:
+         Track, tutamağı KENDİ hesapladığı doğal orana yerleştirir ve MinHeight'lı elemanı o
+         dikdörtgene KIRPAR — eleman 59 px ÖLÇÜLÜR ama ekrana ~4 px ÇİZİLİR (render PNG dökümü:
+         tutamaç rengi #3A3640 yalnız y=694–699'da, 702'den itibaren ray zemini #15161A).
+         Kullanıcının dört kez "ufacık nokta" demesinin kökü bu; ölçümlerim hep ActualHeight
+         okuduğundan kördü — ekrana bakan kullanıcı haklıydı.
+         ÇÖZÜM Track'e karşı değil, ONUN GİRDİSİYLE: ViewportSize öyle şişirilir ki Track'in kendi
+         hesabı (L×V/(V+R)) tam hedef boyu versin → kırpma olmaz, tutamak GERÇEKTEN çizilir.
+         Matematik + kenar durumları: TutamacViewportConverter. Bedeli (bilinçli): ray tıklamasında
+         sayfa adımı da büyür — küçük tutamaklı durumda kullanıcı lehine.
+         Kilit: KaydiriciOlculeriTests (Thumb'da Min* OLMAMALI + Track'te bu bağlama OLMALI). -->
+    <ControlTemplate x:Key="DikeyKaydirici" TargetType="ScrollBar">
+        <Grid Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.ViewportSize>
+                    <MultiBinding Converter="{StaticResource TutamacViewport}">
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ViewportSize" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Maximum" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Minimum" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualHeight" />
+                    </MultiBinding>
+                </Track.ViewportSize>
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource KaydiriciSayfaDugmesi}" />
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource KaydiriciTutamaci}" />
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource KaydiriciSayfaDugmesi}" />
+                </Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="YatayKaydirici" TargetType="ScrollBar">
+        <Grid Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track" IsDirectionReversed="False">
+                <!-- ViewportSize şişirme — gerekçe dikey şablonun üstündeki notta. -->
+                <Track.ViewportSize>
+                    <MultiBinding Converter="{StaticResource TutamacViewport}">
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ViewportSize" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Maximum" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Minimum" />
+                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualWidth" />
+                    </MultiBinding>
+                </Track.ViewportSize>
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource KaydiriciSayfaDugmesi}" />
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource KaydiriciTutamaci}" />
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource KaydiriciSayfaDugmesi}" />
+                </Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- m.7: 12 → 14 px. Tutamaç (Margin=2) 10 px görünür, üstüne gelince 12 px olur. -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="{DynamicResource KaydiriciZeminFircasi}" />
+        <Setter Property="Width" Value="14" />
+        <Setter Property="MinWidth" Value="14" />
+        <Setter Property="Template" Value="{StaticResource DikeyKaydirici}" />
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Height" Value="14" />
+                <Setter Property="MinHeight" Value="14" />
+                <Setter Property="Template" Value="{StaticResource YatayKaydirici}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Grid satır başlığı: Edit modunda görünür (HeadersVisibility="All"). Varsayılan
+         şablon themed chrome çizdiğinden koyu temada açık gri şerit bırakıyordu.
+         Seçili satır göstergesi ▸ olarak korunur (SSMS'teki ok karşılığı). -->
+    <Style TargetType="DataGridRowHeader">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Background" Value="{DynamicResource PanelZeminFircasi}" />
+        <Setter Property="Foreground" Value="{DynamicResource IkincilFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridRowHeader">
+                    <Border x:Name="govde"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource KenarFircasi}"
+                            BorderThickness="0,0,1,1">
+                        <TextBlock x:Name="isaret" Text="▸" FontSize="10"
+                                   Foreground="{DynamicResource VurguFircasi}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="Collapsed" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}"
+                                     Value="True">
+                            <Setter TargetName="isaret" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="govde" Property="Background"
+                                    Value="{DynamicResource VurguZeminFircasi}" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="govde" Property="Background"
+                                    Value="{DynamicResource ZeminAcikFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Sol üst köşedeki "tümünü seç" düğmesi: DataGrid'in kendi kaynak anahtarıyla
+         hedeflenir; aksi hâlde başlık şeridinin ortasında beyaz bir kare kalıyordu. -->
+    <Style x:Key="{ComponentResourceKey ResourceId=DataGridSelectAllButtonStyle, TypeInTargetAssembly={x:Type DataGrid}}"
+           TargetType="Button">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="govde"
+                            Background="{DynamicResource PanelZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}"
+                            BorderThickness="0,0,1,1" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="govde" Property="Background"
+                                    Value="{DynamicResource VurguZeminFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Liste öğesi seçimi: varsayılan Aero2 şablonu KENDİ mavi/gri degradelerini çizer ve
+         palet override'larımızı dinlemez. Geçmiş paneli, profil kartları, palet sonuçları ve
+         tarihçe sürümleri hep ListBox — seçim turkuaz aileye çekildi. -->
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="4,3" />
+        <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="govde" Background="Transparent" Padding="{TemplateBinding Padding}"
+                            BorderBrush="Transparent" BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="govde" Property="Background" Value="{DynamicResource ZeminAcikFircasi}" />
+                        </Trigger>
+                        <!-- Seçili + odakta: turkuaz zemin + sol kenarda vurgu şeridi -->
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="govde" Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                            <Setter TargetName="govde" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                            <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+                        </Trigger>
+                        <!-- Seçili ama odak başka yerde: aynı seçim OKUNUR kalmalı
+                             (3. turda ağaçta yaşanan "açık gri bant üstünde açık yazı" hatası) -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="True" />
+                                <Condition Property="Selector.IsSelectionActive" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="govde" Property="Background" Value="{DynamicResource VurguBasiliFircasi}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- AvalonEdit Ctrl+F arama paneli — ETİKETLİ butonlar (kullanıcı isteği 2026-07-22:
+         ikon-only prev/next/kapat butonları koyu temada boş/anlaşılmaz görünüyordu; artık
+         ne yaptıkları metinle yazılı). Türkçe tooltip'ler AramaYerellestirme'de de var ama
+         asıl fayda buradaki görünür metinlerde. PART_searchTextBox AvalonEdit'in beklediği
+         zorunlu parça adıdır — değiştirilemez. -->
+    <Style TargetType="{x:Type search:SearchPanel}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type search:SearchPanel}">
+                    <Border Background="{DynamicResource PanelZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1"
+                            CornerRadius="4" Margin="0,4,22,0" Padding="6,4" Cursor="Arrow"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            TextElement.Foreground="{DynamicResource MetinFircasi}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Name="PART_searchTextBox" Width="190" Height="26"
+                                     VerticalContentAlignment="Center"
+                                     ToolTip="Aranacak metin (Ctrl+F)"
+                                     Text="{Binding SearchPattern, RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{x:Static search:SearchCommands.FindNext}" />
+                                    <KeyBinding Key="Enter" Modifiers="Shift" Command="{x:Static search:SearchCommands.FindPrevious}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                            <!-- Arama seçenekleri: kısa etiket + açıklayıcı tooltip -->
+                            <CheckBox VerticalAlignment="Center" Margin="8,0,0,0" Padding="4,0" MinHeight="0"
+                                      Content="Aa" FontWeight="SemiBold"
+                                      ToolTip="BÜYÜK/küçük harfe duyarlı ara"
+                                      IsChecked="{Binding MatchCase, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <CheckBox VerticalAlignment="Center" Margin="6,0,0,0" Padding="4,0" MinHeight="0"
+                                      Content="Söz" FontWeight="SemiBold"
+                                      ToolTip="Yalnız tam sözcükleri eşleştir"
+                                      IsChecked="{Binding WholeWords, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <CheckBox VerticalAlignment="Center" Margin="6,0,0,0" Padding="4,0" MinHeight="0"
+                                      Content=".*" FontWeight="SemiBold"
+                                      ToolTip="Düzenli ifade (regex) olarak yorumla"
+                                      IsChecked="{Binding UseRegex, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <!-- Yön/kapat: METİNLİ — asıl kullanıcı şikâyeti buydu -->
+                            <Button Margin="10,0,0,0" Padding="8,2" Content="↑ Önceki"
+                                    ToolTip="Öncekini bul (Shift+F3)"
+                                    Command="{x:Static search:SearchCommands.FindPrevious}" />
+                            <Button Margin="5,0,0,0" Padding="8,2" Content="↓ Sonraki"
+                                    ToolTip="Sonrakini bul (Enter · F3)"
+                                    Command="{x:Static search:SearchCommands.FindNext}" />
+                            <Button Margin="5,0,0,0" Padding="8,2" Content="✕ Kapat"
+                                    ToolTip="Aramayı kapat (Esc)"
+                                    Command="{x:Static search:SearchCommands.CloseSearchPanel}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

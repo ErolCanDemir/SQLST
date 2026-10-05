@@ -1,0 +1,266 @@
+<Window x:Class="SQLST.App.Views.SpSihirbaziPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ae="http://icsharpcode.net/sharpdevelop/avalonedit"
+        Title="SQLST — 🪄 SP Sihirbazı" Width="1080" Height="720"
+        MinWidth="820" MinHeight="560" ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <!-- v19-S19: adımlı sihirbaz (mock-up onayı 2026-08-04). 4 adım: Tanımla · Eşle · Koşullar · Önizle.
+         Tüm profesyonel eklemeler: CREATE OR ALTER · TOP/DISTINCT · AS+toplama · JOIN türü · AND/OR ·
+         ORDER BY · canlı SQL önizleme. -->
+    <Window.Resources>
+        <!-- Adım başlığı (tıklanabilir) -->
+        <Style x:Key="KucukEtiket" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="Kurucu" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PanelZeminFircasi}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style x:Key="EkleDugme" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding" Value="11,5" />
+            <Setter Property="Background" Value="{DynamicResource VurguKoyuFircasi}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ══ STEPPER ══ -->
+        <UniformGrid Grid.Row="0" Rows="1" Columns="4" Margin="0,0,0,12">
+            <Border x:Name="Adim1" Tag="1" MouseLeftButtonUp="Adim_Tik" Cursor="Hand" Margin="0,0,3,0"
+                    CornerRadius="11" Padding="12" Background="{DynamicResource PanelZeminFircasi}" BorderThickness="1"
+                    BorderBrush="{DynamicResource KenarFircasi}">
+                <StackPanel Orientation="Horizontal">
+                    <Border x:Name="Adim1No" Width="26" Height="26" CornerRadius="13" Background="{DynamicResource PencereZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
+                        <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Tanımla" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Text="giriş · çıkış · seçenekler" FontSize="10.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <Border x:Name="Adim2" Tag="2" MouseLeftButtonUp="Adim_Tik" Cursor="Hand" Margin="3,0,3,0"
+                    CornerRadius="11" Padding="12" Background="{DynamicResource PanelZeminFircasi}" BorderThickness="1"
+                    BorderBrush="{DynamicResource KenarFircasi}">
+                <StackPanel Orientation="Horizontal">
+                    <Border x:Name="Adim2No" Width="26" Height="26" CornerRadius="13" Background="{DynamicResource PencereZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
+                        <TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Eşle" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Text="tablo · kolon · JOIN yolu" FontSize="10.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <Border x:Name="Adim3" Tag="3" MouseLeftButtonUp="Adim_Tik" Cursor="Hand" Margin="3,0,3,0"
+                    CornerRadius="11" Padding="12" Background="{DynamicResource PanelZeminFircasi}" BorderThickness="1"
+                    BorderBrush="{DynamicResource KenarFircasi}">
+                <StackPanel Orientation="Horizontal">
+                    <Border x:Name="Adim3No" Width="26" Height="26" CornerRadius="13" Background="{DynamicResource PencereZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
+                        <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Koşullar &amp; Kurallar" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Text="WHERE · IF · sırala" FontSize="10.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <Border x:Name="Adim4" Tag="4" MouseLeftButtonUp="Adim_Tik" Cursor="Hand" Margin="3,0,0,0"
+                    CornerRadius="11" Padding="12" Background="{DynamicResource PanelZeminFircasi}" BorderThickness="1"
+                    BorderBrush="{DynamicResource KenarFircasi}">
+                <StackPanel Orientation="Horizontal">
+                    <Border x:Name="Adim4No" Width="26" Height="26" CornerRadius="13" Background="{DynamicResource PencereZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
+                        <TextBlock Text="4" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Önizle &amp; Üret" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Text="canlı SQL · editöre aç" FontSize="10.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- ══ İÇERİK ══ -->
+        <Grid Grid.Row="1">
+            <!-- ADIM 1 — Tanımla. v19-S23 (kullanıcı bulgusu 2026-08-05: "alanlar çok yukarıda, aşağı
+                 bomboş"): tam ekranda GİRİŞ/ÇIKIŞ kutuları dikeyi DOLDURUR (* satır) — hem seyreklik
+                 biter hem çok kolon adı için bol yer. -->
+            <Grid x:Name="Icerik1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" /><ColumnDefinition Width="220" />
+                        <ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    <ComboBox Grid.Column="1" x:Name="Veritabani" Margin="0,0,14,0" AutomationProperties.AutomationId="CmbSihirbazDb" />
+                    <TextBlock Grid.Column="2" Text="SP adı:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    <TextBox Grid.Column="3" x:Name="SpAdi" Text="spYeniSorgu" Padding="6,3" VerticalContentAlignment="Center" AutomationProperties.AutomationId="TxtSihirbazSpAdi" />
+                </Grid>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                    <CheckBox x:Name="Distinct" Content="DISTINCT" VerticalAlignment="Center" Margin="0,0,20,0"
+                              AutomationProperties.AutomationId="ChkDistinct" />
+                    <TextBlock Text="TOP:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    <TextBox x:Name="TopKutu" Width="80" Padding="6,3" VerticalContentAlignment="Center"
+                             ToolTip="En fazla satır (boş = sınırsız)" AutomationProperties.AutomationId="TxtTop" />
+                </StackPanel>
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <DockPanel Grid.Column="0">
+                        <TextBlock DockPanel.Dock="Top" Text="GİRİŞ parametreleri (WHERE'e girer)" Style="{StaticResource KucukEtiket}" />
+                        <TextBox x:Name="Girisler" MinHeight="120" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto" Padding="6,4" ToolTip="Örn: TcKimlikNo, FirmaId"
+                                 AutomationProperties.AutomationId="TxtSihirbazGiris" />
+                    </DockPanel>
+                    <DockPanel Grid.Column="2">
+                        <TextBlock DockPanel.Dock="Top" Text="ÇIKIŞ kolonları (SELECT'e girer)" Style="{StaticResource KucukEtiket}" />
+                        <TextBox x:Name="Cikislar" MinHeight="120" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto" Padding="6,4" ToolTip="Örn: Ad, Soyad, Unvan"
+                                 AutomationProperties.AutomationId="TxtSihirbazCikis" />
+                    </DockPanel>
+                </Grid>
+                <TextBlock Grid.Row="3" Margin="2,10,0,0" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource SolukMetinFircasi}"
+                           Text="Virgül ya da satırla ayırın. Aynı ad çok tabloda varsa TABLOYLA nitele — örn. degisiklikTanim.adi ya da ortak.degisiklikTanim.adi; böylece o alan doğru tablodan alınır. Karşılığı olmayan alan da SP'ye eklenir (NULL kolon / serbest parametre)." />
+            </Grid>
+
+            <!-- ADIM 2 — Eşle -->
+            <ScrollViewer x:Name="Icerik2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="Adları tablo·kolona eşleyin, çıkışları adlandırın (AS) / toplama seçin:" Style="{StaticResource KucukEtiket}" />
+                    <StackPanel x:Name="EslemePanel" AutomationProperties.AutomationId="PnlEsleme" />
+                    <Border Style="{StaticResource Kurucu}" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="🔗 JOIN yolu — her adımın türünü değiştirebilirsiniz" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <WrapPanel x:Name="JoinPanel" AutomationProperties.AutomationId="PnlJoin" />
+                            <TextBlock x:Name="JoinNot" Foreground="{DynamicResource UyariMetinFircasi}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+                            <!-- v19-S22 (kullanıcı isteği 2026-08-04): FK tanımsız + ad kuralı tutmuyorsa
+                                 (ör. degisiklik.degisiklikId = degisiklikTanim.Id) bağı ELLE ekle. FK havuzuna
+                                 katılır → YolBul o tabloyu (ve gerekiyorsa aradakileri) bağlar. -->
+                            <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource KenarFircasi}" Margin="0,12,0,0" Padding="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Elle JOIN ekle — otomatik bulunamayan ya da özel bağ için (tablo.kolon = tablo.kolon)"
+                                               FontWeight="SemiBold" FontSize="12" Margin="0,0,0,8" />
+                                    <WrapPanel VerticalAlignment="Center">
+                                        <ComboBox x:Name="ElleTablo1" Width="160" Margin="0,0,6,0" SelectionChanged="ElleTablo1_Secildi"
+                                                  ToolTip="Bağın bir ucundaki tablo" AutomationProperties.AutomationId="CmbElleTablo1" />
+                                        <ComboBox x:Name="ElleKolon1" Width="140" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbElleKolon1" />
+                                        <TextBlock Text=" = " VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource VurguFircasi}" />
+                                        <ComboBox x:Name="ElleTablo2" Width="160" Margin="6,0,6,0" SelectionChanged="ElleTablo2_Secildi"
+                                                  ToolTip="Bağın diğer ucundaki tablo" AutomationProperties.AutomationId="CmbElleTablo2" />
+                                        <ComboBox x:Name="ElleKolon2" Width="140" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbElleKolon2" />
+                                        <Button Content="+ Bağ ekle" Style="{StaticResource EkleDugme}" Click="ElleBagEkle_Click"
+                                                AutomationProperties.AutomationId="BtnElleBagEkle" />
+                                    </WrapPanel>
+                                    <StackPanel x:Name="ElleBagListe" Margin="0,8,0,0" AutomationProperties.AutomationId="PnlElleBagListe" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ADIM 3 — Koşullar & Kurallar -->
+            <ScrollViewer x:Name="Icerik3" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                <StackPanel>
+                    <Border Style="{StaticResource Kurucu}">
+                        <StackPanel>
+                            <TextBlock Text="Ek WHERE koşulları" FontWeight="SemiBold" Margin="0,0,0,10" />
+                            <WrapPanel>
+                                <ComboBox x:Name="WhereBaglac" Width="70" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbWhereBaglac" />
+                                <ComboBox x:Name="WhereTablo" Width="150" Margin="0,0,6,0" SelectionChanged="WhereTablo_Secildi" AutomationProperties.AutomationId="CmbWhereTablo" />
+                                <ComboBox x:Name="WhereKolon" Width="150" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbWhereKolon" />
+                                <ComboBox x:Name="WhereOperator" Width="96" Margin="0,0,6,0" SelectionChanged="WhereOperator_Secildi" AutomationProperties.AutomationId="CmbWhereOperator" />
+                                <TextBox x:Name="WhereDeger" Width="130" Margin="0,0,6,0" Padding="6,3" VerticalContentAlignment="Center" AutomationProperties.AutomationId="TxtWhereDeger" />
+                                <Button Content="+ Ekle" Style="{StaticResource EkleDugme}" Click="WhereEkle_Click" AutomationProperties.AutomationId="BtnWhereEkle" />
+                            </WrapPanel>
+                            <StackPanel x:Name="WhereListe" Margin="0,8,0,0" AutomationProperties.AutomationId="PnlWhereListe" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Kurucu}">
+                        <StackPanel>
+                            <TextBlock Text="Parametre kuralları (geçersizse IF ile hata verir)" FontWeight="SemiBold" Margin="0,0,0,10" />
+                            <WrapPanel>
+                                <ComboBox x:Name="KuralParam" Width="140" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbKuralParam" />
+                                <ComboBox x:Name="KuralOperator" Width="96" Margin="0,0,6,0" SelectionChanged="KuralOperator_Secildi" AutomationProperties.AutomationId="CmbKuralOperator" />
+                                <TextBox x:Name="KuralDeger" Width="90" Margin="0,0,6,0" Padding="6,3" VerticalContentAlignment="Center" AutomationProperties.AutomationId="TxtKuralDeger" />
+                                <TextBox x:Name="KuralMesaj" Width="190" Margin="0,0,6,0" Padding="6,3" VerticalContentAlignment="Center"
+                                         ToolTip="Hata mesajı (boşsa otomatik)" AutomationProperties.AutomationId="TxtKuralMesaj" />
+                                <Button Content="+ Ekle" Style="{StaticResource EkleDugme}" Click="KuralEkle_Click" AutomationProperties.AutomationId="BtnKuralEkle" />
+                            </WrapPanel>
+                            <StackPanel x:Name="KuralListe" Margin="0,8,0,0" AutomationProperties.AutomationId="PnlKuralListe" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Kurucu}">
+                        <StackPanel>
+                            <TextBlock Text="Sıralama (ORDER BY)" FontWeight="SemiBold" Margin="0,0,0,10" />
+                            <WrapPanel>
+                                <ComboBox x:Name="SiralaTablo" Width="150" Margin="0,0,6,0" SelectionChanged="SiralaTablo_Secildi" AutomationProperties.AutomationId="CmbSiralaTablo" />
+                                <ComboBox x:Name="SiralaKolon" Width="150" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbSiralaKolon" />
+                                <ComboBox x:Name="SiralaYon" Width="110" Margin="0,0,6,0" AutomationProperties.AutomationId="CmbSiralaYon" />
+                                <Button Content="+ Ekle" Style="{StaticResource EkleDugme}" Click="SiralaEkle_Click" AutomationProperties.AutomationId="BtnSiralaEkle" />
+                                <TextBlock Text="Toplama seçtiyseniz GROUP BY otomatik eklenir." VerticalAlignment="Center" Margin="8,0,0,0"
+                                           FontSize="11" Foreground="{DynamicResource SolukMetinFircasi}" />
+                            </WrapPanel>
+                            <StackPanel x:Name="SiralaListe" Margin="0,8,0,0" AutomationProperties.AutomationId="PnlSiralaListe" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ADIM 4 — Önizle -->
+            <Grid x:Name="Icerik4" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Canlı SQL önizleme — bir adıma geri dönüp değiştirin, buraya yansır." Style="{StaticResource KucukEtiket}" />
+                <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" CornerRadius="8">
+                    <ae:TextEditor x:Name="Onizleme" IsReadOnly="True" ShowLineNumbers="True"
+                                   FontFamily="Cascadia Mono, Consolas" FontSize="12.5" Padding="6"
+                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                   AutomationProperties.AutomationId="EdSpOnizleme" />
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ══ FOOTER ══ -->
+        <DockPanel Grid.Row="2" Margin="0,12,0,0" LastChildFill="False">
+            <TextBlock x:Name="Durum" DockPanel.Dock="Left" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12.5"
+                       Foreground="{DynamicResource BilgiMetinFircasi}" Text="Giriş/çıkış alanlarını doldurup İleri deyin."
+                       AutomationProperties.AutomationId="LblSihirbazDurum" />
+            <Button x:Name="UretDugmesi" DockPanel.Dock="Right" Content="🪄 Editörde aç" Padding="14,6" Margin="8,0,0,0"
+                    Style="{StaticResource BirincilDugme}" Click="Uret_Click" AutomationProperties.AutomationId="BtnSihirbazUret" />
+            <Button x:Name="KopyalaDugmesi" DockPanel.Dock="Right" Content="📋 Panoya kopyala" Padding="12,6" Margin="8,0,0,0"
+                    Click="Kopyala_Click" Visibility="Collapsed" AutomationProperties.AutomationId="BtnSihirbazKopyala" />
+            <Button x:Name="IleriDugmesi" DockPanel.Dock="Right" Content="İleri ›" Padding="14,6" Margin="8,0,0,0"
+                    Click="Ileri_Click" AutomationProperties.AutomationId="BtnSihirbazIleri" />
+            <Button x:Name="GeriDugmesi" DockPanel.Dock="Right" Content="‹ Geri" Padding="14,6" Margin="8,0,0,0"
+                    Click="Geri_Click" Visibility="Collapsed" AutomationProperties.AutomationId="BtnSihirbazGeri" />
+        </DockPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SQLST.App/SQLST.App.csproj" />
+    <Project Path="src/SQLST.Application/SQLST.Application.csproj" />
+    <Project Path="src/SQLST.Contracts/SQLST.Contracts.csproj" />
+    <Project Path="src/SQLST.Infrastructure/SQLST.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SQLST.Application.Tests/SQLST.Application.Tests.csproj" />
+    <Project Path="tests/SQLST.App.Tests/SQLST.App.Tests.csproj" />
+  </Folder>
+</Solution>

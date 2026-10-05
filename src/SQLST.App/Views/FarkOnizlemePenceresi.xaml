@@ -1,0 +1,50 @@
+<Window x:Class="SQLST.App.Views.FarkOnizlemePenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Tam eşitleme farkı" Width="820" Height="560"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <TextBlock DockPanel.Dock="Top" x:Name="Ozet" TextWrapping="Wrap" Margin="0,0,0,10" FontSize="13"
+                   AutomationProperties.AutomationId="LblFarkOzet"
+                   Text="Excel ile hedef tablo karşılaştırıldı." />
+
+        <Border DockPanel.Dock="Bottom" Margin="0,10,0,0" Padding="10,8"
+                Background="{DynamicResource GirisZeminFircasi}" CornerRadius="4">
+            <DockPanel LastChildFill="False">
+                <CheckBox x:Name="SilmeyiUygula" DockPanel.Dock="Left" VerticalAlignment="Center"
+                          AutomationProperties.AutomationId="ChkSilmeyiUygula"
+                          Content="Excel'de olmayan satırları da SİL (tam eşitleme)" />
+                <Button x:Name="BtnFarkScript" DockPanel.Dock="Right"
+                        Content="✔ Script Üret ve Güvenli Yazma'da Aç" Padding="14,5"
+                        Style="{StaticResource BirincilDugme}" Click="ScriptUret_Click"
+                        AutomationProperties.AutomationId="BtnFarkScript" />
+                <Button x:Name="BtnFarkKapat" DockPanel.Dock="Right" Content="Kapat" Padding="14,5" Margin="0,0,8,0"
+                        Click="Kapat_Click" AutomationProperties.AutomationId="BtnFarkKapat" />
+            </DockPanel>
+        </Border>
+
+        <TextBlock DockPanel.Dock="Bottom" x:Name="SilmeUyari" TextWrapping="Wrap" Margin="0,8,0,0"
+                   FontSize="11.5" Foreground="{DynamicResource UyariFircasi}"
+                   Visibility="Collapsed" AutomationProperties.AutomationId="LblSilmeUyari"
+                   Text="⚠ Tam eşitleme açık: hedefte olup Excel'de olmayan satırlar DELETE edilecek. Script Güvenli Yazma'da açılır — çalıştırdıktan sonra satır sayısını görüp COMMIT/ROLLBACK verebilirsiniz." />
+
+        <TabControl Background="Transparent" BorderThickness="0">
+            <TabItem x:Name="YeniSekme" Header="➕ Yeni (0)">
+                <DataGrid x:Name="YeniGrid" IsReadOnly="True" AutoGenerateColumns="True"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          Background="Transparent" AutomationProperties.AutomationId="GridYeni" />
+            </TabItem>
+            <TabItem x:Name="DegisenSekme" Header="✏ Değişen (0)">
+                <DataGrid x:Name="DegisenGrid" IsReadOnly="True" AutoGenerateColumns="True"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          Background="Transparent" AutomationProperties.AutomationId="GridDegisen" />
+            </TabItem>
+            <TabItem x:Name="SilinenSekme" Header="🗑 Silinecek (0)">
+                <DataGrid x:Name="SilinenGrid" IsReadOnly="True" AutoGenerateColumns="True"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          Background="Transparent" AutomationProperties.AutomationId="GridSilinen" />
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

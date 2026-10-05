@@ -1,0 +1,88 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- KOYU · VISUAL STUDIO (v22-S15, 2026-09-23 — kullanıcı 12 mockup'tan 6'yı seçti:
+         "SSMS 21 / VS kabuğu"): SSMS 21'in oturduğu Visual Studio koyu kabuğunun renkleri —
+         #1F1F1F gövde · #2D2D30 krom · #3F3F46 kenar · #0078D4 vurgu · #094771 seçim ·
+         İMZA MAVİ durum çubuğu. Ray VS Activity Bar gibi nötr koyu; ikonlar VS koyu sözdizimi
+         ailesinin tonlarında. Anahtar kümesi PaletAcik.xaml ile BİREBİR (PaletUyumTestleri korur). -->
+    <SolidColorBrush x:Key="SeritFircasi" Color="#2D2D30" />
+    <SolidColorBrush x:Key="BaglamSeridiFircasi" Color="#2D2D30" />
+    <SolidColorBrush x:Key="VurguFircasi" Color="#0078D4" />
+    <SolidColorBrush x:Key="VurguKoyuFircasi" Color="#005A9E" />
+    <SolidColorBrush x:Key="VurguZeminFircasi" Color="#094771" />
+    <SolidColorBrush x:Key="VurguZeminMetinFircasi" Color="#9CDCFE" />
+    <SolidColorBrush x:Key="VurguBasiliFircasi" Color="#0E639C" />
+    <SolidColorBrush x:Key="MetinFircasi" Color="#D4D4D4" />
+    <SolidColorBrush x:Key="IkincilFircasi" Color="#9D9D9D" />
+    <SolidColorBrush x:Key="KenarFircasi" Color="#3F3F46" />
+    <SolidColorBrush x:Key="ZeminAcikFircasi" Color="#252526" />
+    <SolidColorBrush x:Key="PencereZeminFircasi" Color="#1F1F1F" />
+    <SolidColorBrush x:Key="TehlikeFircasi" Color="#F48771" />
+    <SolidColorBrush x:Key="UyariFircasi" Color="#CCA700" />
+    <SolidColorBrush x:Key="BasariFircasi" Color="#57A64A" />
+    <SolidColorBrush x:Key="AramaVurguFircasi" Color="#55F59E0B" />
+
+    <!-- Sol RAY: VS Activity Bar — DÜZ tek ton (çip örtüsüyle kusursuz kaynaşsın diye gradyansız). -->
+    <Color x:Key="RayGradyanUst">#2D2D30</Color>
+    <Color x:Key="RayGradyanAlt">#2D2D30</Color>
+    <SolidColorBrush x:Key="RayMetinFircasi" Color="#D4D4D4" />
+    <SolidColorBrush x:Key="RaySolukFircasi" Color="#858585" />
+    <SolidColorBrush x:Key="RayBaslikFircasi" Color="#7A7A7E" />
+    <SolidColorBrush x:Key="RayHoverFircasi" Color="#3E3E42" />
+
+    <SolidColorBrush x:Key="ZayifMetinFircasi" Color="#C8C8C8" />
+    <SolidColorBrush x:Key="SolukMetinFircasi" Color="#858585" />
+    <SolidColorBrush x:Key="PanelZeminFircasi" Color="#252526" />
+    <SolidColorBrush x:Key="BilgiZeminFircasi" Color="#17334D" />
+    <SolidColorBrush x:Key="BilgiMetinFircasi" Color="#75BEFF" />
+    <SolidColorBrush x:Key="UyariZeminFircasi" Color="#3A3113" />
+    <SolidColorBrush x:Key="UyariMetinFircasi" Color="#CCA700" />
+    <SolidColorBrush x:Key="UyariKenarFircasi" Color="#6E5A1E" />
+    <SolidColorBrush x:Key="FarkSilinenZeminFircasi" Color="#442423" />
+    <SolidColorBrush x:Key="FarkEklenenZeminFircasi" Color="#203D2B" />
+    <SolidColorBrush x:Key="EditorZeminFircasi" Color="#1E1E1E" />
+    <SolidColorBrush x:Key="EditorMetinFircasi" Color="#D4D4D4" />
+    <SolidColorBrush x:Key="GirisZeminFircasi" Color="#333337" />
+
+    <SolidColorBrush x:Key="KaydiriciZeminFircasi" Color="#252526" />
+    <SolidColorBrush x:Key="KaydiriciTutamacFircasi" Color="#4A4A50" />
+    <SolidColorBrush x:Key="KaydiriciTutamacUstuFircasi" Color="#686870" />
+    <SolidColorBrush x:Key="KaydiriciTutamacBasiliFircasi" Color="#8A8A92" />
+
+    <!-- Komut barı ikonları — VS koyu sözdizimi ailesinin tonları (canlı ama VS'e sadık). -->
+    <SolidColorBrush x:Key="IkonMor" Color="#B180D7" />
+    <SolidColorBrush x:Key="IkonYesil" Color="#89D185" />
+    <SolidColorBrush x:Key="IkonAmber" Color="#CCA700" />
+    <SolidColorBrush x:Key="IkonMavi" Color="#75BEFF" />
+    <SolidColorBrush x:Key="IkonSari" Color="#D7BA7D" />
+    <SolidColorBrush x:Key="IkonIndigo" Color="#569CD6" />
+    <SolidColorBrush x:Key="IkonGul" Color="#F48771" />
+    <SolidColorBrush x:Key="IkonTeal" Color="#4EC9B0" />
+    <SolidColorBrush x:Key="IkonPembe" Color="#D16D9E" />
+
+    <SolidColorBrush x:Key="TabloFircasi" Color="#569CD6" />
+    <SolidColorBrush x:Key="ViewFircasi" Color="#4EC9B0" />
+    <SolidColorBrush x:Key="SpFircasi" Color="#C586C0" />
+    <SolidColorBrush x:Key="FonksiyonFircasi" Color="#D7BA7D" />
+
+    <!-- Seçim: VS'in tanıdık koyu lacivert seçimi (#094771) + beyaz metin. -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#094771" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#3F3F46" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#D4D4D4" />
+
+    <!-- Durum çubuğu — VS/SSMS'in İMZASI: mavi bant + beyaz yazı. -->
+    <SolidColorBrush x:Key="DurumCubuguZeminFircasi" Color="#0078D4" />
+    <SolidColorBrush x:Key="DurumCubuguMetinFircasi" Color="#FFFFFF" />
+
+    <!-- Ray çipi (mockup 6 sadakati): örtü ray tonunda → renkli çipler KAYBOLUR, yalnız gri
+         çizgi-ikon kalır (VS Activity Bar görünümü). -->
+    <SolidColorBrush x:Key="RayCipOrtusuFircasi" Color="#2D2D30" />
+    <SolidColorBrush x:Key="RayIkonFircasi" Color="#C8C8C8" />
+
+    <!-- v23-S14 GRID IZGARASI: bu aile DEĞİŞMEDİ (bkz. PaletAcik.xaml notu). -->
+    <x:Static x:Key="GridCizgiGorunurlugu" Member="DataGridGridLinesVisibility.Horizontal" />
+    <SolidColorBrush x:Key="GridCizgiFircasi" Color="#3F3F46" />
+    <Thickness x:Key="GridBaslikKenarKalinligi">0,0,0,1</Thickness>
+    <SolidColorBrush x:Key="GridAlternatifSatirFircasi" Color="#252526" />
+</ResourceDictionary>

@@ -1,0 +1,26 @@
+<Window x:Class="SQLST.App.Views.YeniVeritabaniPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Yeni Veritabanı" Width="380" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="NoResize"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <StackPanel Margin="16">
+        <TextBlock Text="Yeni veritabanının adı:" FontWeight="SemiBold" Margin="0,0,0,4"
+                   AutomationProperties.AutomationId="LblYeniDb" />
+        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10"
+                   Foreground="{DynamicResource SolukMetinFircasi}"
+                   Text="Bağlı olduğunuz sunucuda varsayılan ayarlarla oluşturulur (CREATE DATABASE). Boyut/dosya yolu gibi ileri ayarlar için script kullanın." />
+
+        <TextBox x:Name="AdKutusu" Padding="6,4" MaxLength="120"
+                 AutomationProperties.AutomationId="TxtYeniDbAd" />
+        <TextBlock x:Name="Uyari" Foreground="#E05561" FontSize="12" Margin="0,4,0,0"
+                   Visibility="Collapsed" AutomationProperties.AutomationId="LblYeniDbUyari" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="İptal" Padding="14,5" Margin="0,0,8,0" IsCancel="True" Click="Iptal_Click"
+                    AutomationProperties.AutomationId="BtnYeniDbIptal" />
+            <Button Content="Oluştur" Padding="16,5" IsDefault="True" Style="{StaticResource BirincilDugme}"
+                    Click="Tamam_Click" AutomationProperties.AutomationId="BtnYeniDbTamam" />
+        </StackPanel>
+    </StackPanel>
+</Window>

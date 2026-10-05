@@ -1,0 +1,86 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- AÇIK · ANTRASİT + TURKUAZ (v23-S14, 2026-10-05 — kullanıcı isteği: eski tema çalışmasındaki
+         "B - Antrasit + Turkuaz" görünümü, grid'i de pencere tasarımı gibi): antrasit #263238 kabuk
+         (bağlantı bandı + ray) · beyaz gövde · turkuaz #00838F vurgu · KLASİK TAM IZGARA grid
+         (dikey+yatay çizgi, başlıkta kolon ayraçları, alternatif satır rengi YOK).
+         Anahtar kümesi PaletAcik.xaml ile BİREBİR (PaletUyumTestleri korur). -->
+    <SolidColorBrush x:Key="SeritFircasi" Color="#ECEFF1" />
+    <SolidColorBrush x:Key="BaglamSeridiFircasi" Color="#263238" />
+    <SolidColorBrush x:Key="VurguFircasi" Color="#00838F" />
+    <SolidColorBrush x:Key="VurguKoyuFircasi" Color="#006064" />
+    <SolidColorBrush x:Key="VurguZeminFircasi" Color="#D7F2F5" />
+    <SolidColorBrush x:Key="VurguZeminMetinFircasi" Color="#00525C" />
+    <SolidColorBrush x:Key="VurguBasiliFircasi" Color="#B2EBF2" />
+    <SolidColorBrush x:Key="MetinFircasi" Color="#1F2A30" />
+    <SolidColorBrush x:Key="IkincilFircasi" Color="#546E7A" />
+    <SolidColorBrush x:Key="KenarFircasi" Color="#B0BEC5" />
+    <SolidColorBrush x:Key="ZeminAcikFircasi" Color="#F5F7F8" />
+    <SolidColorBrush x:Key="PencereZeminFircasi" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="TehlikeFircasi" Color="#C62828" />
+    <SolidColorBrush x:Key="UyariFircasi" Color="#9D5D00" />
+    <SolidColorBrush x:Key="BasariFircasi" Color="#2E7D32" />
+    <SolidColorBrush x:Key="AramaVurguFircasi" Color="#66FFC107" />
+
+    <!-- Sol özellik menüsü (B'de yoktu): B'nin sade havasına uysun diye AÇIK ve renksiz — düz tek ton. -->
+    <Color x:Key="RayGradyanUst">#F5F5F5</Color>
+    <Color x:Key="RayGradyanAlt">#F5F5F5</Color>
+    <SolidColorBrush x:Key="RayMetinFircasi" Color="#1E1E1E" />
+    <SolidColorBrush x:Key="RaySolukFircasi" Color="#6D6D6D" />
+    <SolidColorBrush x:Key="RayBaslikFircasi" Color="#757575" />
+    <SolidColorBrush x:Key="RayHoverFircasi" Color="#E3E7EA" />
+
+    <SolidColorBrush x:Key="ZayifMetinFircasi" Color="#37474F" />
+    <SolidColorBrush x:Key="SolukMetinFircasi" Color="#607D8B" />
+    <SolidColorBrush x:Key="PanelZeminFircasi" Color="#ECEFF1" />
+    <SolidColorBrush x:Key="BilgiZeminFircasi" Color="#E0F7FA" />
+    <SolidColorBrush x:Key="BilgiMetinFircasi" Color="#006978" />
+    <SolidColorBrush x:Key="UyariZeminFircasi" Color="#FBF0D0" />
+    <SolidColorBrush x:Key="UyariMetinFircasi" Color="#7A5A00" />
+    <SolidColorBrush x:Key="UyariKenarFircasi" Color="#D9BE7A" />
+    <SolidColorBrush x:Key="FarkSilinenZeminFircasi" Color="#FDE7E9" />
+    <SolidColorBrush x:Key="FarkEklenenZeminFircasi" Color="#DFF2E1" />
+    <SolidColorBrush x:Key="EditorZeminFircasi" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="EditorMetinFircasi" Color="#1F2A30" />
+    <SolidColorBrush x:Key="GirisZeminFircasi" Color="#FFFFFF" />
+
+    <SolidColorBrush x:Key="KaydiriciZeminFircasi" Color="#ECEFF1" />
+    <SolidColorBrush x:Key="KaydiriciTutamacFircasi" Color="#B0BEC5" />
+    <SolidColorBrush x:Key="KaydiriciTutamacUstuFircasi" Color="#90A4AE" />
+    <SolidColorBrush x:Key="KaydiriciTutamacBasiliFircasi" Color="#78909C" />
+
+    <!-- İkonlar B'deki gibi TEK RENK (koyu gri) — renkli ikon dili yok. -->
+    <SolidColorBrush x:Key="IkonMor" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonYesil" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonAmber" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonMavi" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonSari" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonIndigo" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonGul" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonTeal" Color="#4A5560" />
+    <SolidColorBrush x:Key="IkonPembe" Color="#4A5560" />
+
+    <SolidColorBrush x:Key="TabloFircasi" Color="#00838F" />
+    <SolidColorBrush x:Key="ViewFircasi" Color="#0277BD" />
+    <SolidColorBrush x:Key="SpFircasi" Color="#6A1B9A" />
+    <SolidColorBrush x:Key="FonksiyonFircasi" Color="#B25E00" />
+
+    <!-- Seçim: açık turkuaz bant + koyu metin. -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#B2EBF2" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#1F2A30" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#E0E7EA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#1F2A30" />
+
+    <!-- Durum çubuğu: B'deki gibi AÇIK GRİ + koyu yazı (renkli bant değil). -->
+    <SolidColorBrush x:Key="DurumCubuguZeminFircasi" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="DurumCubuguMetinFircasi" Color="#1E1E1E" />
+
+    <SolidColorBrush x:Key="RayCipOrtusuFircasi" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="RayIkonFircasi" Color="#4A5560" />
+
+    <!-- v23-S14 GRID IZGARASI (aile başına): Antrasit'te KLASİK TAM IZGARA — B'deki ince SİYAH çizgi. -->
+    <x:Static x:Key="GridCizgiGorunurlugu" Member="DataGridGridLinesVisibility.All" />
+    <SolidColorBrush x:Key="GridCizgiFircasi" Color="#1E1E1E" />
+    <Thickness x:Key="GridBaslikKenarKalinligi">0,0,1,1</Thickness>
+    <SolidColorBrush x:Key="GridAlternatifSatirFircasi" Color="#FFFFFF" />
+</ResourceDictionary>

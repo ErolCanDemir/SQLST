@@ -1,0 +1,255 @@
+<Window x:Class="SQLST.App.Views.LogAnalizPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:SQLST.App.Converters"
+        Title="SQLST — Log Analizi" Width="980" Height="680"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <Window.Resources>
+        <conv:DegerDoluysaGorunurConverter x:Key="DegerVarsaGorunur" />
+        <conv:HucreMetniConverter x:Key="TekSatir" />
+        <conv:SeviyeFircasiConverter x:Key="SeviyeFircasi" />
+
+        <!-- Seviye süzgeç çipi: seçiliyken vurgulu (ToggleButton) -->
+        <Style x:Key="SeviyeCipi" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="12,3" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Kap" CornerRadius="11" Padding="{TemplateBinding Padding}"
+                                Background="{DynamicResource PanelZeminFircasi}"
+                                BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Kap" Property="Background" Value="{DynamicResource VurguFircasi}" />
+                                <Setter TargetName="Kap" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="14">
+        <!-- Ekran amacı notu (2026-07-23): log/exception tabloları için -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource UyariZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <TextBlock x:Name="LogNotu" TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource UyariMetinFircasi}"
+                       Text="Not: Bu ekranı exception/log tabloları için kullanınız; aksi takdirde verim alınamayabilir. Tabloyu ve mesaj kolonunu seçin — en çok tekrarlayan kayıtlar GERÇEK toplam sayısıyla listelenir (parametre farkları elenerek aynı hata tek grupta toplanır). Bir gruba çift tıklayarak arkasındaki ham kayıtları ve zaman dağılımını görebilirsiniz."
+                       AutomationProperties.AutomationId="LblLogNot" />
+        </Border>
+
+        <!-- Seçiciler: DB / tablo / mesaj kolonu / (v20-S3) seviye kolonu -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Grid.Column="1" x:Name="VeritabaniKutusu" MinWidth="120" Margin="0,0,14,0"
+                      SelectionChanged="Veritabani_Secildi" ToolTip="Log/exception tablosunun bulunduğu veritabanı"
+                      AutomationProperties.AutomationId="CmbLogVeritabani" />
+            <TextBlock Grid.Column="2" x:Name="TabloEtiketi" Text="Tablo:" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Grid.Column="3" x:Name="TabloKutusu" MinWidth="150" Margin="0,0,14,0"
+                      SelectionChanged="Tablo_Secildi" ToolTip="Analiz edilecek log/exception tablosu (Mongo: koleksiyon)"
+                      AutomationProperties.AutomationId="CmbLogTablo" />
+            <TextBlock Grid.Column="4" x:Name="KolonEtiketi" Text="Mesaj kolonu:" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Grid.Column="5" x:Name="KolonKutusu" MinWidth="120" Margin="0,0,14,0"
+                      ToolTip="Gruplama bu kolonun metnine göre yapılır (exception mesajı kolonu)"
+                      AutomationProperties.AutomationId="CmbLogKolon" />
+            <TextBlock Grid.Column="6" x:Name="SeviyeEtiketi" Text="Seviye kolonu:" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Grid.Column="7" x:Name="SeviyeKolonuKutusu" MinWidth="110"
+                      SelectionChanged="SeviyeKolonu_Secildi"
+                      ToolTip="Seviye süzgeci ve renkli rozet için (ör. Level). Boş bırakılırsa süzgeç gizlenir."
+                      AutomationProperties.AutomationId="CmbLogSeviyeKolon" />
+        </Grid>
+
+        <!-- Seviye çipleri (seviye kolonu varsa) + sonuçlarda arama -->
+        <DockPanel x:Name="SuzgecSatiri" DockPanel.Dock="Top" Margin="0,0,0,10" Visibility="Collapsed">
+            <TextBlock Text="Seviye:" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ToggleButton x:Name="CipHata" Content="● Hata" Style="{StaticResource SeviyeCipi}"
+                          Click="SeviyeCipi_Degisti" AutomationProperties.AutomationId="CipLogHata" />
+            <ToggleButton x:Name="CipUyari" Content="● Uyarı" Style="{StaticResource SeviyeCipi}"
+                          Click="SeviyeCipi_Degisti" AutomationProperties.AutomationId="CipLogUyari" />
+            <ToggleButton x:Name="CipBilgi" Content="● Bilgi" Style="{StaticResource SeviyeCipi}"
+                          Click="SeviyeCipi_Degisti" AutomationProperties.AutomationId="CipLogBilgi" />
+            <TextBlock Text="(hiçbiri seçili değilse tümü)" VerticalAlignment="Center" Margin="4,0,0,0"
+                       FontSize="11" Foreground="{DynamicResource SolukMetinFircasi}" />
+
+            <!-- Sağda: sonuç listesinde arama -->
+            <Grid DockPanel.Dock="Right" Width="240" HorizontalAlignment="Right">
+                <TextBox x:Name="SonucSuz" Padding="24,3,6,3" TextChanged="SonucSuz_Degisti"
+                         VerticalContentAlignment="Center"
+                         ToolTip="Aşağıdaki grup listesini metne göre süz"
+                         AutomationProperties.AutomationId="TxtLogSonucSuz" />
+                <TextBlock Text="🔎" Margin="6,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                           Foreground="{DynamicResource SolukMetinFircasi}" />
+            </Grid>
+        </DockPanel>
+
+        <!-- İki panel: Günlük (son 24 saat) · Tüm Zamanlar (tarih aralığı) -->
+        <TabControl DockPanel.Dock="Top" x:Name="LogPaneller" Margin="0,0,0,10"
+                    AutomationProperties.AutomationId="LogPaneller">
+            <TabItem Header="Günlük Log Analizi" AutomationProperties.AutomationId="TabGunlukLog">
+                <StackPanel Margin="10">
+                    <Border Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                            BorderThickness="1" BorderBrush="{DynamicResource VurguFircasi}" Padding="10,7" Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource VurguFircasi}"
+                                   Text="⏱ SON 24 SAATİ BAZ ALMAKTADIR — TÜM TABLO TARANMAZ; YALNIZCA SON 24 SAATTEKİ KAYITLAR GRUPLANIR."
+                                   AutomationProperties.AutomationId="LblLog24Saat" />
+                    </Border>
+                    <Button x:Name="AnalizDugmesi" Content="🔎 Analiz et (son 24 saat)"
+                            HorizontalAlignment="Right" Padding="14,4"
+                            Click="Analiz_Click" Style="{StaticResource BirincilDugme}"
+                            AutomationProperties.AutomationId="BtnLogAnalizEt" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Tüm Zamanlar Log Analizi" AutomationProperties.AutomationId="TabTumZamanlarLog">
+                <StackPanel Margin="10">
+                    <TextBlock TextWrapping="Wrap" FontSize="12.5" Margin="0,0,0,10"
+                               Foreground="{DynamicResource SolukMetinFircasi}"
+                               Text="Seçilen tarih aralığındaki kayıtlar gruplanır (bitiş günü DAHİL). İki tarih de boş bırakılırsa tüm tablo örneklenir."
+                               AutomationProperties.AutomationId="LblAralikNot" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="Başlangıç:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <DatePicker DockPanel.Dock="Left" x:Name="BaslangicTarihi" Width="130" Margin="0,0,16,0"
+                                    AutomationProperties.AutomationId="DtLogBaslangic" />
+                        <TextBlock DockPanel.Dock="Left" Text="Bitiş:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <DatePicker DockPanel.Dock="Left" x:Name="BitisTarihi" Width="130"
+                                    AutomationProperties.AutomationId="DtLogBitis" />
+                        <Button DockPanel.Dock="Right" x:Name="AralikAnalizDugmesi" Content="🔎 Analiz et (aralık)"
+                                HorizontalAlignment="Right" Padding="14,4"
+                                Click="AralikAnaliz_Click" Style="{StaticResource BirincilDugme}"
+                                AutomationProperties.AutomationId="BtnLogAralikAnalizEt" />
+                        <Border />
+                    </DockPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <!-- Özet bandı + eylemler: AI Özetle · Kopyala · CSV -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,8">
+            <DockPanel>
+                <!-- ⏹ Durdur (v20-S6): yalnız bir analiz/detay koşarken görünür; çalışan sorguyu ANINDA keser. -->
+                <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="⏹ Durdur" Padding="10,2" Margin="8,0,0,0"
+                        Click="Durdur_Click" Visibility="Collapsed" Foreground="White" BorderThickness="0"
+                        Background="#C0392B" ToolTip="Çalışan analizi/detay sorgusunu durdur (dev tabloda uzun sürerse)"
+                        AutomationProperties.AutomationId="BtnLogDurdur" />
+                <Button DockPanel.Dock="Right" x:Name="AiOzetDugmesi" Content="🤖 AI Özetle" Padding="10,2" Margin="8,0,0,0"
+                        Click="AiOzetle_Click" Style="{StaticResource BirincilDugme}"
+                        ToolTip="Ekrandaki en çok tekrarlayan grupları asistana yorumlatır: muhtemel kök neden + sonraki adım"
+                        AutomationProperties.AutomationId="BtnLogAiOzet" />
+                <Button DockPanel.Dock="Right" x:Name="CsvDugmesi" Content="⬇ CSV" Padding="10,2" Margin="8,0,0,0"
+                        Click="Csv_Click" ToolTip="Listeyi CSV dosyasına aktar"
+                        AutomationProperties.AutomationId="BtnLogCsv" />
+                <Button DockPanel.Dock="Right" x:Name="KopyalaDugmesi" Content="⧉ Kopyala" Padding="10,2" Margin="8,0,0,0"
+                        Click="Kopyala_Click" ToolTip="Listeyi panoya kopyala (sekmeyle ayrılmış)"
+                        AutomationProperties.AutomationId="BtnLogKopyala" />
+                <TextBlock x:Name="Ozet" TextWrapping="Wrap" Foreground="{DynamicResource BilgiMetinFircasi}" FontSize="12.5"
+                           VerticalAlignment="Center"
+                           Text="Veritabanı, tablo ve mesaj kolonunu seçip “Analiz et”e basın."
+                           AutomationProperties.AutomationId="LblLogOzet" />
+            </DockPanel>
+        </Border>
+
+        <!-- AI özeti (kapalı başlar) -->
+        <Expander DockPanel.Dock="Bottom" x:Name="AiOzetGenisletici" Header="🤖 AI özeti" IsExpanded="False"
+                  Margin="0,6,0,0" AutomationProperties.AutomationId="ExpLogAiOzet">
+            <TextBox x:Name="AiOzetAlani" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="180"
+                     VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
+                     FontSize="12.5" AutomationProperties.AutomationId="TxtLogAiOzet" />
+        </Expander>
+
+        <!-- Seçili grubun TAM mesajı + "detaya in" ipucu -->
+        <Grid DockPanel.Dock="Bottom" Height="150" Margin="0,8,0,0"
+              Visibility="{Binding SelectedItem, ElementName=Grid, Converter={StaticResource DegerVarsaGorunur}}">
+            <Border BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" CornerRadius="3"
+                    Background="{DynamicResource PanelZeminFircasi}">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
+                        <TextBlock DockPanel.Dock="Left" Text="Seçili grubun tam mesajı" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SolukMetinFircasi}" />
+                        <Button DockPanel.Dock="Right" HorizontalAlignment="Right" x:Name="DetayDugmesi"
+                                Content="🔬 Ham kayıtlar + zaman dağılımı" Padding="10,2" Click="Detay_Click"
+                                ToolTip="Bu grubun arkasındaki gerçek satırları ve saatlik/günlük dağılımı aç (çift tık da olur)"
+                                AutomationProperties.AutomationId="BtnLogDetay" />
+                    </DockPanel>
+                    <TextBox Text="{Binding SelectedItem.OrnekMesaj, ElementName=Grid, Mode=OneWay}"
+                             IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             BorderThickness="0" Background="Transparent" FontFamily="Cascadia Mono, Consolas"
+                             FontSize="12" Padding="8,0,8,8"
+                             AutomationProperties.AutomationId="TxtLogTamMesaj" />
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <DataGrid x:Name="Grid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" EnableRowVirtualization="True"
+                  MouseDoubleClick="Grid_MouseDoubleClick"
+                  AutomationProperties.AutomationId="LogGrid">
+            <DataGrid.Columns>
+                <!-- Seviye rozeti (renk = seviye) -->
+                <DataGridTemplateColumn Header="Seviye" Width="106">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="9" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Background="{Binding Seviye, Converter={StaticResource SeviyeFircasi}}"
+                                    Visibility="{Binding Seviye, Converter={StaticResource DegerVarsaGorunur}}">
+                                <TextBlock Text="{Binding Seviye}" Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Kez" Binding="{Binding Sayi}" Width="72">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                            <Setter Property="Margin" Value="0,0,10,0" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <!-- YENİ rozeti: ilk görülme son 24 saatteyse -->
+                <DataGridTemplateColumn Header="" Width="52">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="8" Padding="6,0" Background="#E05A4F" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" Visibility="{Binding YeniGorunur}">
+                                <TextBlock Text="YENİ" Foreground="White" FontSize="10" FontWeight="Bold" />
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="İlk görülme" Width="128"
+                                    Binding="{Binding IlkGorulme, StringFormat='dd.MM.yyyy HH:mm'}" />
+                <DataGridTextColumn Header="Son görülme" Width="128"
+                                    Binding="{Binding SonGorulme, StringFormat='dd.MM.yyyy HH:mm'}" />
+                <DataGridTemplateColumn Header="Örnek mesaj" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding OrnekMesaj, Converter={StaticResource TekSatir}}"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding OrnekMesaj}"
+                                       VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

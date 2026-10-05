@@ -1,0 +1,76 @@
+<Window x:Class="SQLST.App.Views.MongoLookupPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — 🔗 $lookup sihirbazı" Width="920" Height="480"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        MinWidth="720" MinHeight="380"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="380" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Seçimler -->
+        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+            <TextBlock Text="İki koleksiyonu birleştir" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+            <TextBlock Text="Ana koleksiyon" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="AnaKoleksiyon" Margin="0,2,0,8" SelectionChanged="Secim_Degisti"
+                      AutomationProperties.AutomationId="CmbLookupAna" />
+
+            <TextBlock Text="Bağlanacak koleksiyon" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="BaglanacakKoleksiyon" Margin="0,2,0,8" SelectionChanged="Secim_Degisti"
+                      AutomationProperties.AutomationId="CmbLookupBaglanacak" />
+
+            <TextBlock Text="Yerel alan (ana koleksiyonda)" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="YerelAlan" Margin="0,2,0,8" IsEditable="True" SelectionChanged="Secim_Degisti"
+                      AutomationProperties.AutomationId="CmbLookupYerel" />
+
+            <TextBlock Text="Hedef alan (bağlanacak koleksiyonda)" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="HedefAlan" Margin="0,2,0,8" IsEditable="True" SelectionChanged="Secim_Degisti"
+                      AutomationProperties.AutomationId="CmbLookupHedef" />
+
+            <TextBlock Text="Sonuç alanı" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox x:Name="SonucAlani" Margin="0,2,0,10" Padding="6,3" TextChanged="Secim_Degisti"
+                     AutomationProperties.AutomationId="TxtLookupSonucAlani" />
+
+            <CheckBox x:Name="Duzlestir" IsChecked="True" Margin="0,0,0,6" Click="Secim_Degisti"
+                      Content="Tek eşleşme olarak düzleştir ($unwind)"
+                      ToolTip="Dizi yerine tek belge — SQL'deki JOIN'e en yakın hâl"
+                      AutomationProperties.AutomationId="ChkLookupDuzlestir" />
+            <CheckBox x:Name="Eslesmeyenler" Margin="0,0,0,10" Click="Secim_Degisti"
+                      Content="Eşleşmeyen belgeler de gelsin (LEFT JOIN)"
+                      ToolTip="preserveNullAndEmptyArrays — yalnız düzleştirmeyle anlamlı"
+                      AutomationProperties.AutomationId="ChkLookupEslesmeyen" />
+
+            <!-- v22-S1 m.13: ÖNİZLEME SINIRI. Ölçüm (ana 50k · hedef 10k belge): limitsiz sorgu 60 sn
+                 tavanına dayanıp iptal oldu; $limit 200 ile 16,9 sn; hedef alan index'liyken 143 ms. -->
+            <TextBlock Text="Önizleme satırı ($limit)" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox x:Name="Onizleme" Text="200" Margin="0,2,0,4" Padding="6,3" TextChanged="Secim_Degisti"
+                     ToolTip="Sihirbaz bir keşif aracıdır: sorgu ilk N eşleşmede durur. 0 = sınırsız (dev koleksiyonda çok yavaş olabilir)"
+                     AutomationProperties.AutomationId="TxtLookupOnizleme" />
+            <TextBlock x:Name="IndexUyarisi" Margin="0,0,0,12" TextWrapping="Wrap" FontSize="11.5"
+                       Foreground="{DynamicResource UyariMetinFircasi}" Visibility="Collapsed" />
+
+            <StackPanel Orientation="Horizontal">
+                <Button Content="▶ Sekmede aç" Style="{StaticResource BirincilDugme}" Padding="14,5"
+                        Margin="0,0,8,0" Click="SekmedeAc_Click"
+                        AutomationProperties.AutomationId="BtnLookupSekmedeAc" />
+                <Button Content="📋 Kopyala" Padding="12,5" Click="Kopyala_Click"
+                        AutomationProperties.AutomationId="BtnLookupKopyala" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Canlı pipeline -->
+        <DockPanel Grid.Column="1">
+            <TextBlock DockPanel.Dock="Top" Text="Üretilen pipeline" FontWeight="SemiBold" Margin="0,0,0,6" />
+            <TextBlock DockPanel.Dock="Bottom" x:Name="Ipucu" Margin="0,8,0,0" TextWrapping="Wrap"
+                       FontSize="11.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox x:Name="Pipeline" IsReadOnly="True" FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                     AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Padding="8"
+                     Background="{DynamicResource EditorZeminFircasi}" Foreground="{DynamicResource EditorMetinFircasi}"
+                     AutomationProperties.AutomationId="TxtLookupPipeline" />
+        </DockPanel>
+    </Grid>
+</Window>

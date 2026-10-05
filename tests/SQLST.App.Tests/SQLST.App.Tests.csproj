@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ViewModel testleri (B2/A3, 2026-07-19).
+
+    NEDEN AYRI PROJE: SQLST.App bir WPF projesidir (UseWPF), bu yüzden ona başvuran
+    test projesi de WPF derlemelerini görebilmeli. Application.Tests bilinçli olarak
+    WPF'siz kalıyor — orası saf mantık katmanı.
+
+    NE TEST EDİLİR: WPF TİPİNE BAĞLI OLMAYAN ViewModel davranışı — durum geçişleri,
+    bayatlama, komut kapıları, görünüm köprülerinin sözleşmesi. Pencere açmak, binding
+    çözmek ya da render etmek KAPSAM DIŞIDIR (onlar gözle doğrulanır).
+
+    Bu boşluk gerçek hatalar üretmişti: V5-S2'de arama sekmesi açılışta yakaladığı
+    veritabanında aramaya devam ediyordu ve hiçbir test bunu görmedi.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SQLST.App\SQLST.App.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,31 @@
+<Window x:Class="SQLST.App.Views.EsitlemeScriptPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — 🔀 Eşitleme Script'i" Width="760" Height="560"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True" MinWidth="520" MinHeight="360"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                Padding="10,7" Margin="0,0,0,10" BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Script BURADA ÇALIŞTIRILMADI: hedef ayrı bir bağlantı olabilir. Kopyalayıp HEDEF bağlantıda, Güvenli Yazma açıkken çalıştırın — karar bandında 🔍 ile etkiyi görüp COMMIT/ROLLBACK dersiniz."
+                       AutomationProperties.AutomationId="LblEsitlemeNot" />
+        </Border>
+
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="True">
+            <Button DockPanel.Dock="Right" Content="💾 Kaydet…" Padding="10,3" Margin="8,0,0,0"
+                    Click="Kaydet_Click" AutomationProperties.AutomationId="BtnEsitlemeKaydet" />
+            <Button DockPanel.Dock="Right" Content="📋 Kopyala" Padding="10,3" Margin="8,0,0,0"
+                    Style="{StaticResource BirincilDugme}" Click="Kopyala_Click"
+                    AutomationProperties.AutomationId="BtnEsitlemeKopyala" />
+            <TextBlock x:Name="Baslik" FontWeight="SemiBold" FontSize="13.5" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="LblEsitlemeBaslik" />
+        </DockPanel>
+
+        <TextBox x:Name="Metin" IsReadOnly="True" FontFamily="Consolas" FontSize="12.5"
+                 AcceptsReturn="True" TextWrapping="NoWrap" VerticalContentAlignment="Top"
+                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                 Background="Transparent" BorderBrush="{DynamicResource KenarFircasi}"
+                 AutomationProperties.AutomationId="TxtEsitlemeScript" />
+    </DockPanel>
+</Window>

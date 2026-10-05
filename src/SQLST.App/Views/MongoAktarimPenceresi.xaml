@@ -1,0 +1,167 @@
+<Window x:Class="SQLST.App.Views.MongoAktarimPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Paket Aktarım (MongoDB)" Width="900" Height="640"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <!-- Üst bilgi -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Koleksiyondan koleksiyona BELGE aktarır (ör. logları arşiv veritabanına taşıma). Alanlar varsayılan BİREBİR kopyalanır; alttaki eşleme gridinde yeniden adlandırabilir ya da boşaltıp atlayabilirsiniz. Süzgeçle (find JSON) daraltılabilir. Hedef veritabanı/koleksiyon önceden VAR OLMAK ZORUNDA DEĞİL — Mongo ilk yazışta oluşturur. Ekle/Güncelle _id'ye göre çalışır; 'önce temizle' açıkça onaylanmadıkça hedefe dokunulmaz."
+                       AutomationProperties.AutomationId="LblMongoAktarimNot" />
+        </Border>
+
+        <!-- Kaynak / Hedef seçimleri -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <GroupBox Grid.Column="0" Header="KAYNAK (bağlı olduğunuz)" Padding="8"
+                      Foreground="{DynamicResource SolukMetinFircasi}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Bağlantı:" VerticalAlignment="Center" Margin="0,3" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" x:Name="KaynakProfilAdi" VerticalAlignment="Center"
+                               FontWeight="SemiBold" Foreground="{DynamicResource MetinFircasi}" Margin="0,3" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="KaynakDb" Margin="0,3"
+                              SelectionChanged="KaynakDb_Secildi"
+                              AutomationProperties.AutomationId="CmbMakKaynakDb" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Koleksiyon:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="KaynakKoleksiyon" Margin="0,3"
+                              SelectionChanged="KaynakKoleksiyon_Secildi"
+                              AutomationProperties.AutomationId="CmbMakKaynakKoleksiyon" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Süzgeç:" VerticalAlignment="Top" Margin="0,6,0,0"
+                               ToolTip="find filtresi (JSON). Boş = tüm belgeler." />
+                    <TextBox Grid.Row="3" Grid.Column="1" x:Name="Suzgec" Margin="0,3" MinHeight="46"
+                             AcceptsReturn="True" TextWrapping="NoWrap" VerticalContentAlignment="Top"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             FontFamily="{StaticResource KodYazisi}"
+                             ToolTip="Örnek: { &quot;Seviye&quot;: &quot;Hata&quot; } ya da { &quot;Zaman&quot;: { &quot;$lt&quot;: ISODate(&quot;2026-01-01&quot;) } } — boş bırakılırsa TÜM belgeler"
+                             AutomationProperties.AutomationId="TxtMakSuzgec" />
+                </Grid>
+            </GroupBox>
+            <TextBlock Grid.Column="1" Text="→" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" Foreground="{DynamicResource VurguFircasi}" />
+            <GroupBox Grid.Column="2" Header="HEDEF (Mongo)" Padding="8"
+                      Foreground="{DynamicResource SolukMetinFircasi}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Bağlantı:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="HedefProfil" Margin="0,3"
+                              SelectionChanged="HedefProfil_Secildi"
+                              ToolTip="Kayıtlı MONGO profillerinden seçin. Listede yoksa önce Bağlantı ekranından profil kaydedin."
+                              AutomationProperties.AutomationId="CmbMakHedefProfil">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run Text="{Binding Ad, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="  " /><Run
+                                        Text="{Binding Sunucu, Mode=OneWay}"
+                                        Foreground="{DynamicResource SolukMetinFircasi}" />
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <!-- Hedef DB/koleksiyon YAZILABİLİR: arşiv DB'si henüz yoksa adı buraya yazılır,
+                         Mongo ilk yazışta oluşturur (senaryonun kendisi). Liste yalnız kolaylıktır. -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="HedefDb" Margin="0,3" IsEditable="True"
+                              SelectionChanged="HedefDb_Secildi"
+                              ToolTip="Listeden seçin YA DA yeni ad yazın (ör. LogArsiv) — yoksa oluşturulur"
+                              AutomationProperties.AutomationId="CmbMakHedefDb" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Koleksiyon:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="HedefKoleksiyon" Margin="0,3" IsEditable="True"
+                              SelectionChanged="HedefKoleksiyon_Secildi"
+                              ToolTip="Listeden seçin YA DA yeni ad yazın — yoksa oluşturulur"
+                              AutomationProperties.AutomationId="CmbMakHedefKoleksiyon" />
+                </Grid>
+            </GroupBox>
+        </Grid>
+
+        <!-- Seçenekler + çalıştırma -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" x:Name="AktarDugmesi" Content="📦 Aktar" Padding="18,6"
+                    Style="{StaticResource BirincilDugme}" Click="Aktar_Click"
+                    AutomationProperties.AutomationId="BtnMakAktar" />
+            <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="■ Durdur" Padding="12,6"
+                    Margin="0,0,8,0" IsEnabled="False" Click="Durdur_Click"
+                    AutomationProperties.AutomationId="BtnMakDurdur" />
+            <TextBlock Text="Yazma:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="YazmaKipi" Width="185" VerticalAlignment="Center" SelectedIndex="0"
+                      ToolTip="Ekle/Güncelle: aynı _id'li belge hedefte varsa DEĞİŞTİRİLİR, yoksa eklenir"
+                      AutomationProperties.AutomationId="CmbMakYazmaKipi" />
+            <CheckBox x:Name="OnceTemizle" Content="Önce hedefi TEMİZLE (deleteMany)" VerticalAlignment="Center"
+                      Margin="16,0,0,0"
+                      ToolTip="Aktarımdan önce hedef koleksiyondaki TÜM belgeler silinir — başlatırken ayrıca onay istenir"
+                      AutomationProperties.AutomationId="ChkMakTemizle" />
+            <TextBlock Text="Hata olursa:" VerticalAlignment="Center" Margin="16,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="HataPolitikasi" Width="170" VerticalAlignment="Center" SelectedIndex="0"
+                      AutomationProperties.AutomationId="CmbMakHataPolitikasi" />
+        </DockPanel>
+
+        <!-- Durum + ilerleme + rapor -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,8,0,0">
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Bottom" x:Name="Ilerleme" Height="8" Margin="0,6,0,0"
+                             IsIndeterminate="False" Visibility="Collapsed"
+                             AutomationProperties.AutomationId="PrgMakAktarim" />
+                <!-- v22-S16: atlanan belgelerin TAM listesi dosyaya (rapor kutusu ilk 20'yi gösterir) -->
+                <Button DockPanel.Dock="Bottom" x:Name="BtnHataRaporu" Content="⬇ Hata raporunu kaydet"
+                        Visibility="Collapsed" HorizontalAlignment="Left" Padding="10,3" Margin="0,6,0,0"
+                        Click="HataRaporu_Click"
+                        ToolTip="Atlanan belgelerin TAM listesini metin dosyasına yazar (rapor kutusunda yalnız ilk 20 örnek görünür)"
+                        AutomationProperties.AutomationId="BtnMakHataRaporu" />
+                <TextBox DockPanel.Dock="Bottom" x:Name="Rapor" IsReadOnly="True" Visibility="Collapsed"
+                         FontFamily="{StaticResource KodYazisi}" FontSize="12" Margin="0,6,0,0"
+                         MaxHeight="130" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                         HorizontalScrollBarVisibility="Auto" BorderThickness="1"
+                         BorderBrush="{DynamicResource KenarFircasi}"
+                         Background="{DynamicResource PencereZeminFircasi}"
+                         AutomationProperties.AutomationId="TxtMakRapor" />
+                <TextBlock x:Name="Durum" TextWrapping="Wrap" FontSize="12.5"
+                           VerticalAlignment="Top"
+                           Foreground="{DynamicResource BilgiMetinFircasi}"
+                           Text="Kaynak koleksiyonu ve hedefi seçin; hedef adları yeni de olabilir."
+                           AutomationProperties.AutomationId="LblMakDurum" />
+            </DockPanel>
+        </Border>
+
+        <!-- Alan eşleme gridi (v12-S6, kullanıcı isteği: "alanlar ve eşleştirmesi gelmedi"):
+             KAYNAK alan başına satır ($sample envanteri — şemasız ailede hedef şeması olmayabilir).
+             Hedef alan YAZILABİLİR combo: aday = hedef koleksiyonun envanteri, boş = aktarma.
+             Hiç dokunulmazsa belge OLDUĞU GİBİ gider (örneklem dışı alanlar da — güvenli varsayılan). -->
+        <DataGrid x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  AutomationProperties.AutomationId="MakEslemeGrid">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Kaynak alan" Binding="{Binding KaynakAlan}" IsReadOnly="True" Width="220" />
+                <DataGridTextColumn Header="Örneklenen tip" Binding="{Binding Tip}" IsReadOnly="True" Width="160" />
+                <DataGridTemplateColumn Header="Hedef alan (boş = aktarma, yazılabilir)" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox IsEditable="True" ItemsSource="{Binding HedefAdaylar}"
+                                      Text="{Binding HedefAlan, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="2" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,195 @@
+<Window x:Class="SQLST.App.Views.SoapIstemciPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+        Title="SQLST — SOAP İstemcisi" Width="1060" Height="720"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <!-- Üst bilgi -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="WCF/SOAP servisini test edin: WSDL adresini yükleyin → soldan operasyonu seçin → ortadaki SOAP zarfını düzenleyin (örnek değerler hazır) → Gönder. Yanıt altta, süreyle birlikte görünür; Fault dönerse açıkça işaretlenir. Hedef: basicHttpBinding + document/literal (SP saran WCF'lerin standardı)."
+                       AutomationProperties.AutomationId="LblSoapNot" />
+        </Border>
+
+        <!-- WSDL + ortam satırı (v14-S3: ortam profili = tek seçimle test/canlı geçişi) -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock DockPanel.Dock="Left" Text="Ortam:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox DockPanel.Dock="Left" x:Name="Ortamlar" Width="150" VerticalAlignment="Center"
+                      SelectionChanged="Ortam_Secildi"
+                      ToolTip="Kayıtlı ortam profilleri — seçince WSDL ve adres dolar"
+                      AutomationProperties.AutomationId="CmbSoapOrtam" />
+            <Button DockPanel.Dock="Left" Content="💾" Margin="4,0,10,0" Padding="8,3"
+                    Click="OrtamKaydet_Click"
+                    ToolTip="Bu WSDL + adresi ortam profili olarak kaydet (test/canlı)"
+                    AutomationProperties.AutomationId="BtnSoapOrtamKaydet" />
+            <TextBlock DockPanel.Dock="Left" Text="WSDL:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <Button DockPanel.Dock="Right" x:Name="YukleDugmesi" Content="⇩ Yükle" Margin="6,0,0,0"
+                    Padding="14,4" Style="{StaticResource BirincilDugme}" Click="Yukle_Click"
+                    AutomationProperties.AutomationId="BtnSoapYukle" />
+            <Button DockPanel.Dock="Right" Content="📁 Dosya" Margin="6,0,0,0" Padding="12,4"
+                    Click="Dosya_Click" ToolTip="WSDL'i yerel dosyadan yükle (.wsdl/.xml)"
+                    AutomationProperties.AutomationId="BtnSoapDosya" />
+            <TextBox x:Name="WsdlUrl" VerticalContentAlignment="Center"
+                     ToolTip="Örn: http://sunucu/Servis.svc?wsdl"
+                     AutomationProperties.AutomationId="TxtSoapWsdlUrl" />
+        </DockPanel>
+
+        <!-- Kimlik satırı (v16 Basic; v19-S2: tür seçici + Bearer + WS-Security zarf düğmesi).
+             Boş bırakılırsa kimlik gönderilmez; dolu ise hem WSDL indirmede hem çağrıda kullanılır.
+             Ortam profiliyle kaydedilir (parola/token DPAPI ile şifreli). -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock DockPanel.Dock="Left" Text="Kimlik:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox DockPanel.Dock="Left" x:Name="KimlikTuru" Width="92" Margin="0,0,10,0" SelectedIndex="0"
+                      SelectionChanged="KimlikTuru_Degisti"
+                      ToolTip="Basic: kullanıcı+parola base64 olarak Authorization başlığına gider · Bearer: yalnız token gider (kullanıcı adı kapalı)"
+                      AutomationProperties.AutomationId="CmbSoapKimlikTuru">
+                <ComboBoxItem Content="Basic" />
+                <ComboBoxItem Content="Bearer" />
+            </ComboBox>
+            <TextBlock DockPanel.Dock="Left" Text="Kullanıcı adı:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox DockPanel.Dock="Left" x:Name="KullaniciAdi" Width="150" VerticalContentAlignment="Center"
+                     Margin="0,0,16,0"
+                     ToolTip="HTTP Basic auth kullanıcı adı — boşsa kimlik gönderilmez (Bearer'da kapalıdır)"
+                     AutomationProperties.AutomationId="TxtSoapKullanici" />
+            <TextBlock DockPanel.Dock="Left" x:Name="ParolaEtiket" Text="Parola:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <Button DockPanel.Dock="Right" Content="🔐 WS-Security zarfa ekle" Padding="10,3" Margin="10,0,0,0"
+                    Click="WsSecurity_Click"
+                    ToolTip="Kimlik kutularındaki kullanıcı+parolayla zarfın Header'ına OASIS UsernameToken (PasswordText + Nonce + Created) yazar — gizlice göndermez, editörde görüp düzenlersiniz"
+                    AutomationProperties.AutomationId="BtnSoapWsSecurity" />
+            <PasswordBox x:Name="Parola" VerticalContentAlignment="Center"
+                         ToolTip="HTTP Basic auth parolası / Bearer token (ortam kaydında DPAPI ile şifreli saklanır)"
+                         AutomationProperties.AutomationId="PwdSoapParola" />
+        </DockPanel>
+
+        <!-- Durum -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,8,0,0">
+            <TextBlock x:Name="Durum" TextWrapping="Wrap" FontSize="12.5"
+                       Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="WSDL adresini yazıp Yükle'ye basın."
+                       AutomationProperties.AutomationId="LblSoapDurum" />
+        </Border>
+
+        <Grid>
+            <!-- Sol panel ORANTILI (kullanıcı bulgusu 2026-07-27: tam ekranda sabit 230px kalıp uzun
+                 operasyon adları kırpılıyordu — "grid de büyüsün"). Artık pencere büyüdükçe büyür;
+                 GridSplitter'la elle de ayarlanır. MinWidth küçük ekranda daralmayı sınırlar. -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" MinWidth="200" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="4*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sol: operasyonlar (üst) + istek geçmişi (alt, çift tık = geri yükle) -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="3*" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="2*" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="0,0,0,6">
+                    <TextBlock x:Name="ServisAdi" FontWeight="SemiBold"
+                               Foreground="{DynamicResource MetinFircasi}"
+                               AutomationProperties.AutomationId="LblSoapServisAdi" />
+                    <!-- v19-S17 (kullanıcı isteği 2026-08-04): operasyon araması — tablolardaki gezgin
+                         arama kutusuyla aynı desen (gömülü büyüteç + ✕ temizle). Çok operasyonlu
+                         serviste metoda hızlı süzme. Yalnız operasyon yüklüyken görünür. -->
+                    <Grid x:Name="AramaSatiri" Margin="0,6,0,0" Visibility="Collapsed">
+                        <TextBox x:Name="OperasyonArama" Padding="24,3,22,3"
+                                 TextChanged="OperasyonArama_Degisti"
+                                 ToolTip="Operasyon ara — yazdıkça süzer"
+                                 AutomationProperties.AutomationId="TxtSoapOperasyonArama" />
+                        <Path Style="{StaticResource AramaSimgesi}" HorizontalAlignment="Left"
+                              Stroke="{DynamicResource IkonTeal}" Margin="7,0,0,0" IsHitTestVisible="False" />
+                        <Button x:Name="AramaTemizleDugmesi" Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Margin="0,0,3,0" Padding="4,0" MinHeight="0" FontSize="10" Visibility="Collapsed"
+                                BorderThickness="0" Background="Transparent" Foreground="{DynamicResource SolukMetinFircasi}"
+                                Click="OperasyonAramaTemizle_Click" ToolTip="Aramayı temizle"
+                                AutomationProperties.AutomationId="BtnSoapAramaTemizle" />
+                    </Grid>
+                </StackPanel>
+                <ListBox Grid.Row="1" x:Name="Operasyonlar" SelectionChanged="Operasyon_Secildi"
+                         AutomationProperties.AutomationId="LstSoapOperasyonlar" />
+                <GridSplitter Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              Background="{DynamicResource KenarFircasi}" />
+                <TextBlock Grid.Row="3" Text="GEÇMİŞ" FontSize="11" Margin="0,4,0,2"
+                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                <ListBox Grid.Row="4" x:Name="Gecmis" FontSize="12"
+                         MouseDoubleClick="Gecmis_CiftTik"
+                         ToolTip="Çift tık: isteği (adres + action + zarf) geri yükler"
+                         AutomationProperties.AutomationId="LstSoapGecmis" />
+            </Grid>
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          Background="{DynamicResource KenarFircasi}" />
+
+            <!-- Sağ: adres/aksiyon + zarf + yanıt -->
+            <Grid Grid.Column="2" Margin="8,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="3*" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition Height="2*" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0" Margin="0,0,0,4">
+                    <TextBlock DockPanel.Dock="Left" Text="Adres:" Width="60" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SolukMetinFircasi}" />
+                    <TextBox x:Name="Adres" VerticalContentAlignment="Center"
+                             ToolTip="Çağrının gideceği uç — WSDL'den gelir, test/canlı için elle değiştirebilirsiniz"
+                             AutomationProperties.AutomationId="TxtSoapAdres" />
+                </DockPanel>
+                <DockPanel Grid.Row="1" Margin="0,0,0,6">
+                    <TextBlock DockPanel.Dock="Left" Text="Action:" Width="60" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SolukMetinFircasi}" />
+                    <Button DockPanel.Dock="Right" x:Name="GonderDugmesi" Content="▶ Gönder" Margin="6,0,0,0"
+                            Padding="16,4" Style="{StaticResource BirincilDugme}" Click="Gonder_Click"
+                            IsEnabled="False"
+                            ToolTip="Zarfı seçili adrese gönderir (F5 / Ctrl+Enter zarf kutusunda da çalışır)"
+                            AutomationProperties.AutomationId="BtnSoapGonder" />
+                    <TextBox x:Name="Aksiyon" VerticalContentAlignment="Center" FontSize="12"
+                             AutomationProperties.AutomationId="TxtSoapAksiyon" />
+                </DockPanel>
+
+                <!-- #13 (kullanıcı isteği 2026-07-29): XML renkleri TEMA-FARKINDA — etiket bir renk,
+                     girilen değer ayrı renk; zemin temaya göre. Renklendirme + fırçalar code-behind'da
+                     (XmlTemasiUygula, App.KoyuTemaAcik) — AvalonEdit fırçaları DynamicResource almaz. -->
+                <avalon:TextEditor Grid.Row="2" x:Name="Zarf"
+                                   FontFamily="{StaticResource KodYazisi}" FontSize="12.5"
+                                   ShowLineNumbers="True" WordWrap="False" Padding="6"
+                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                   PreviewKeyDown="Zarf_KeyDown"
+                                   AutomationProperties.AutomationId="TxtSoapZarf" />
+                <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              Background="{DynamicResource KenarFircasi}" />
+                <DockPanel Grid.Row="4">
+                    <!-- Yanıt başlığı + AI (v14-S3): son istek+yanıt zarfı yorumlatılır -->
+                    <DockPanel DockPanel.Dock="Top" Margin="0,4,0,2" LastChildFill="False">
+                        <TextBlock DockPanel.Dock="Left" Text="YANIT" FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SolukMetinFircasi}" />
+                        <Button DockPanel.Dock="Right" x:Name="AiYorumlaDugmesi" Content="AI Yorumla"
+                                Style="{StaticResource AracDugmesi}" Foreground="#0EA5E9"
+                                Tag="{StaticResource Ikon.Robot}" Click="AiYorumla_Click" IsEnabled="False"
+                                ToolTip="İstek + yanıt zarfını yapay zekaya özetletir; Fault'ta neden + düzeltme önerir"
+                                AutomationProperties.AutomationId="BtnSoapAiYorumla" />
+                    </DockPanel>
+                    <avalon:TextEditor x:Name="Yanit" IsReadOnly="True"
+                                       FontFamily="{StaticResource KodYazisi}" FontSize="12.5"
+                                       ShowLineNumbers="True" WordWrap="False" Padding="6"
+                                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                       AutomationProperties.AutomationId="TxtSoapYanit" />
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

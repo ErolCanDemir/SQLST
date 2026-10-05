@@ -1,0 +1,191 @@
+<Window x:Class="SQLST.App.Views.KarsilastirmaSekmePenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — 🔀 Karşılaştır" Width="1060" Height="720"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <!-- Karşılaştırma (v7-S1): sol = aktif profil, sağ = elle girilen bağlantı. Şema alt sekmesi
+         tablo/kolon/PK/FK farkını gösterir; Veri alt sekmesi satır bazlı kıyas + eşitleme.
+         Kullanıcı isteği 2026-08-09: sekme yerine AYRI PENCERE (SOAP istemcisi gibi). -->
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="8,6" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource KenarFircasi}"
+                Background="{DynamicResource PanelZeminFircasi}">
+            <StackPanel>
+                <!-- SOL: aktif profil + DB seçimi (Kaynak) -->
+                <WrapPanel VerticalAlignment="Center" Margin="0,0,0,6">
+                    <TextBlock Text="Kaynak DB:" Width="78" VerticalAlignment="Center"
+                               FontWeight="Bold" Foreground="{DynamicResource VurguFircasi}" />
+                    <TextBlock Text="{Binding SolBaslik}" VerticalAlignment="Center"
+                               FontWeight="SemiBold" Margin="0,0,6,0"
+                               Foreground="{DynamicResource MetinFircasi}" />
+                    <ComboBox Width="160" Margin="0,0,10,0" VerticalAlignment="Center"
+                              ItemsSource="{Binding SolVeritabanlari}" SelectedItem="{Binding SolDb}"
+                              ToolTip="Sol (aktif profil) veritabanı"
+                              AutomationProperties.AutomationId="CmbSolDb" />
+                    <TextBlock Text="{Binding SagMotorMetni}" VerticalAlignment="Center"
+                               FontWeight="SemiBold" Foreground="{DynamicResource VurguFircasi}"
+                               ToolTip="Sağ taraf yalnız aynı motorla karşılaştırılır" />
+                </WrapPanel>
+                <!-- SAĞ: elle bağlantı girişi (bağlantı ekranındaki gibi; motor SOLA sabit) — Hedef -->
+                <WrapPanel VerticalAlignment="Center">
+                    <TextBlock Text="Hedef DB:" Width="78" VerticalAlignment="Center"
+                               FontWeight="Bold" Foreground="{DynamicResource VurguFircasi}" />
+                    <TextBox Width="180" Margin="0,0,6,0" VerticalAlignment="Center"
+                             Text="{Binding SagSunucu, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Sağ sunucu adı (ör. localhost\SQLEXPRESS)"
+                             AutomationProperties.AutomationId="TxtSagSunucu" />
+                    <ComboBox Width="110" Margin="0,0,6,0" VerticalAlignment="Center"
+                              ItemsSource="{Binding KimlikTurleri}" SelectedItem="{Binding SagKimlik}"
+                              ToolTip="Kimlik türü" AutomationProperties.AutomationId="CmbSagKimlik" />
+                    <TextBox Width="120" Margin="0,0,6,0" VerticalAlignment="Center"
+                             Text="{Binding SagKullanici, UpdateSourceTrigger=PropertyChanged}"
+                             Visibility="{Binding SagSqlKimlikMi, Converter={StaticResource BoolGorunurluk}}"
+                             ToolTip="Kullanıcı adı (SQL kimliği)"
+                             AutomationProperties.AutomationId="TxtSagKullanici" />
+                    <PasswordBox x:Name="SagParolaKutusu" Width="120" Margin="0,0,6,0" VerticalAlignment="Center"
+                                 PasswordChanged="SagParola_Changed"
+                                 Visibility="{Binding SagSqlKimlikMi, Converter={StaticResource BoolGorunurluk}}"
+                                 AutomationProperties.AutomationId="PwdSagParola" />
+                    <Button Content="DB'leri getir" Padding="10,4" Margin="0,0,6,0" VerticalAlignment="Center"
+                            Command="{Binding SagBaglanCommand}"
+                            ToolTip="Sağ sunucuya bağlanıp veritabanlarını listeler"
+                            AutomationProperties.AutomationId="BtnSagBaglan" />
+                    <ComboBox Width="160" Margin="0,0,10,0" VerticalAlignment="Center"
+                              ItemsSource="{Binding SagVeritabanlari}" SelectedItem="{Binding SagDb}"
+                              ToolTip="Sağ veritabanı"
+                              AutomationProperties.AutomationId="CmbSagDb" />
+                    <Button Content="🔀 Karşılaştır" Padding="12,4" VerticalAlignment="Center"
+                            Style="{StaticResource BirincilDugme}" IsEnabled="{Binding Bosta}"
+                            Command="{Binding KarsilastirCommand}"
+                            AutomationProperties.AutomationId="BtnKarsilastirCalistir" />
+                </WrapPanel>
+                <TextBlock Text="{Binding Bilgi}" Margin="0,6,0,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource SolukMetinFircasi}" FontSize="11.5"
+                           AutomationProperties.AutomationId="LblKarsilastirBilgi" />
+            </StackPanel>
+        </Border>
+        <!-- Belirgin "karşılaştırılıyor" bandı: işlem sürerken sekmeler donmuş görünmesin. -->
+        <Border DockPanel.Dock="Top" Padding="10,7"
+                Background="{DynamicResource BilgiZeminFircasi}"
+                BorderBrush="{DynamicResource VurguFircasi}" BorderThickness="0,0,0,2"
+                Visibility="{Binding Calisiyor, Converter={StaticResource BoolGorunurluk}}"
+                AutomationProperties.AutomationId="KarsilastirmaCalisiyorBandi">
+            <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                       Foreground="{DynamicResource BilgiMetinFircasi}">
+                <Run Text="⏳ Karşılaştırılıyor… büyük tablolarda sürebilir (WHERE ile daraltabilirsiniz). Lütfen bekleyin." />
+            </TextBlock>
+        </Border>
+        <TabControl Background="Transparent" BorderThickness="0">
+            <TabItem Header="Şema">
+                <DockPanel>
+                    <!-- 🔀 Şema eşitleme (2026-08-03): veri sekmesiyle aynı yöntem — seçilenler ya da tamamı -->
+                    <WrapPanel DockPanel.Dock="Top" Margin="0,4,0,4">
+                        <Button Content="✅ Seçilenleri eşitle" Padding="10,4" VerticalAlignment="Center"
+                                Click="SecilenleriSemaEsitle_Click" IsEnabled="{Binding Bosta}"
+                                ToolTip="☑ kolonunda işaretlediğiniz şema farkları için hedefi kaynağa eşitleyen DDL script'i üretir — ÇALIŞTIRMAZ"
+                                AutomationProperties.AutomationId="BtnSecilenleriSemaEsitle" />
+                        <Button Content="✅ Tümünü eşitle" Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center"
+                                Click="TumSemayiEsitle_Click" IsEnabled="{Binding Bosta}"
+                                ToolTip="Listedeki TÜM şema farkları için DDL script'i üretir — DROP'lar ayrı YIKICI bölümde, FK/Index notla düşer"
+                                AutomationProperties.AutomationId="BtnTumSemayiEsitle" />
+                    </WrapPanel>
+                    <DataGrid ItemsSource="{Binding Farklar}" AutoGenerateColumns="False"
+                              IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
+                              GridLinesVisibility="Horizontal"
+                              SelectionMode="Extended" SelectionUnit="FullRow"
+                              AutomationProperties.AutomationId="SemaFarkGrid">
+                        <DataGrid.Columns>
+                            <!-- ☑ seçim kolonu (v19-S12): eşitleme seçimi onay kutusuyla. -->
+                            <DataGridTemplateColumn Width="36" CanUserResize="False">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="☑" ToolTip="Eşitlenecek satırları işaretleyin" />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Secili, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Yön" Binding="{Binding Yon}" Width="120" />
+                            <DataGridTextColumn Header="Nesne" Binding="{Binding Nesne}" Width="220" />
+                            <DataGridTextColumn Header="Kapsam" Binding="{Binding Kapsam}" Width="160" />
+                            <DataGridTextColumn Header="Detay" Binding="{Binding Detay}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Veri">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Padding="8,6" BorderThickness="0,0,0,1"
+                            BorderBrush="{DynamicResource KenarFircasi}">
+                        <StackPanel>
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Tablo:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                                <ComboBox Width="220" Margin="0,0,10,0" VerticalAlignment="Center"
+                                          ItemsSource="{Binding VeriTablolari}" SelectedItem="{Binding VeriTablo}"
+                                          ToolTip="Kaynak (sol) veritabanının tablosu — hedefte de bulunmalı"
+                                          AutomationProperties.AutomationId="CmbVeriTablo" />
+                                <TextBlock Text="{Binding VeriAnahtar}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource VurguFircasi}" FontSize="11.5" />
+                                <Button Content="🔀 Veri karşılaştır" Padding="12,4" VerticalAlignment="Center"
+                                        Style="{StaticResource BirincilDugme}" IsEnabled="{Binding Bosta}"
+                                        Command="{Binding VeriKarsilastirCommand}"
+                                        AutomationProperties.AutomationId="BtnVeriKarsilastir" />
+                                <Button Content="⬇ CSV" Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center"
+                                        Click="VeriFarkCsv_Click"
+                                        ToolTip="Satır fark listesini (Yön · Anahtar) CSV dosyasına aktarır"
+                                        AutomationProperties.AutomationId="BtnVeriFarkCsv" />
+                                <!-- 🔀 Eşitleme (madde 4, 2026-08-03): çoklu seçim → seçilenler ya da tamamı -->
+                                <Button Content="✅ Seçilenleri eşitle" Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center"
+                                        Click="SecilenleriEsitle_Click" IsEnabled="{Binding Bosta}"
+                                        ToolTip="☑ kolonunda işaretlediğiniz fark satırları için hedefi kaynağa eşitleyen script'i üretir — ÇALIŞTIRMAZ"
+                                        AutomationProperties.AutomationId="BtnSecilenleriEsitle" />
+                                <Button Content="✅ Tümünü eşitle" Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center"
+                                        Click="TumunuEsitle_Click" IsEnabled="{Binding Bosta}"
+                                        ToolTip="Listedeki TÜM farklar için hedefi kaynağa eşitleyen script'i üretir — ÇALIŞTIRMAZ; hedefte Güvenli Yazma ile koşun"
+                                        AutomationProperties.AutomationId="BtnTumunuEsitle" />
+                            </WrapPanel>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="WHERE:" VerticalAlignment="Center" Margin="0,0,4,0"
+                                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                                <TextBox Text="{Binding VeriWhere, UpdateSourceTrigger=PropertyChanged}"
+                                         VerticalContentAlignment="Center" Padding="4,3" FontFamily="{StaticResource KodYazisi}"
+                                         ToolTip="İsteğe bağlı — iki tarafta AYNEN uygulanır (WHERE'siz yazın, ör. Aktif = 1)"
+                                         AutomationProperties.AutomationId="TxtVeriWhere" />
+                            </DockPanel>
+                            <TextBlock Text="{Binding VeriBilgi}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource SolukMetinFircasi}" FontSize="11.5"
+                                       AutomationProperties.AutomationId="LblVeriBilgi" />
+                        </StackPanel>
+                    </Border>
+                    <DataGrid ItemsSource="{Binding VeriFarklari}" AutoGenerateColumns="False"
+                              IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
+                              GridLinesVisibility="Horizontal" ClipboardCopyMode="ExcludeHeader"
+                              SelectionMode="Extended" SelectionUnit="FullRow"
+                              AutomationProperties.AutomationId="VeriFarkGrid">
+                        <DataGrid.Columns>
+                            <!-- ☑ seçim kolonu (v19-S12): eşitleme seçimi onay kutusuyla. -->
+                            <DataGridTemplateColumn Width="36" CanUserResize="False">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="☑" ToolTip="Eşitlenecek satırları işaretleyin" />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Secili, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Yön" Binding="{Binding Yon}" Width="130" />
+                            <DataGridTextColumn Header="Anahtar" Binding="{Binding Anahtar}" Width="180" />
+                            <DataGridTextColumn Header="Kolon farkı (kaynak → hedef)" Binding="{Binding Detay}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

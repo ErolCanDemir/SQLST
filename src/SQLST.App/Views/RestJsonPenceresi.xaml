@@ -1,0 +1,22 @@
+<Window x:Class="SQLST.App.Views.RestJsonPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+        Title="SQLST — JSON yanıt" Width="820" Height="560"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,6" Margin="0,0,0,8">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="⧉ Kopyala" Padding="10,3" Click="Kopyala_Click"
+                        AutomationProperties.AutomationId="BtnJsonKopyala" />
+                <TextBlock x:Name="Ozet" VerticalAlignment="Center" FontSize="12.5"
+                           Foreground="{DynamicResource BilgiMetinFircasi}" />
+            </DockPanel>
+        </Border>
+        <avalon:TextEditor x:Name="Metin" IsReadOnly="True" ShowLineNumbers="True" WordWrap="False"
+                           FontFamily="Cascadia Mono, Consolas" FontSize="13"
+                           AutomationProperties.AutomationId="JsonMetin" />
+    </DockPanel>
+</Window>

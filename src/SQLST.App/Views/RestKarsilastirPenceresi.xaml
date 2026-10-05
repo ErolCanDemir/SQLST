@@ -1,0 +1,58 @@
+<Window x:Class="SQLST.App.Views.RestKarsilastirPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Yanıt ↔ DB karşılaştır" Width="920" Height="640"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,8" Margin="0,0,0,8">
+            <StackPanel>
+                <TextBlock x:Name="ApiBilgi" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{DynamicResource BilgiMetinFircasi}" />
+                <TextBlock Text="DB tarafı SQL (aynı anahtar + karşılaştırılacak kolonları döndürsün):"
+                           Margin="0,6,0,3" FontSize="11.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+                <TextBox x:Name="SqlKutusu" AcceptsReturn="True" TextWrapping="NoWrap" Height="82"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="13" Padding="6"
+                         AutomationProperties.AutomationId="TxtKarsilastirSql" />
+                <DockPanel Margin="0,8,0,0">
+                    <Button DockPanel.Dock="Right" x:Name="KarsilastirDugmesi" Content="🔍 Karşılaştır" Padding="16,5"
+                            Style="{StaticResource BirincilDugme}" Click="Karsilastir_Click"
+                            AutomationProperties.AutomationId="BtnKarsilastir" />
+                    <TextBlock DockPanel.Dock="Left" Text="Anahtar kolon:" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBox DockPanel.Dock="Left" x:Name="AnahtarKutusu" Width="170" VerticalContentAlignment="Center"
+                             Padding="6,3" Margin="0,0,12,0" AutomationProperties.AutomationId="TxtKarsilastirAnahtar" />
+                    <TextBlock Text="(API yanıtı ve DB sonucunda ortak bir kolon adı)" VerticalAlignment="Center"
+                               FontSize="11.5" Foreground="{DynamicResource SolukMetinFircasi}" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock DockPanel.Dock="Top" x:Name="Ozet" Margin="0,0,0,6" FontSize="12.5" TextWrapping="Wrap"
+                   Foreground="{DynamicResource BilgiMetinFircasi}"
+                   Text="DB tarafı SQL + anahtar kolon girin ve Karşılaştır'a basın." />
+        <TextBlock DockPanel.Dock="Bottom" Margin="0,6,0,0" FontSize="11.5"
+                   Foreground="{DynamicResource SolukMetinFircasi}"
+                   Text="Renkli satır = dikkat (yalnız API / yalnız DB / farklı). Değer karşılaştırması metin bazlı — ondalık/tarih biçim farkı yanlış 'farklı' verebilir." />
+
+        <DataGrid x:Name="SonucGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Single"
+                  AutomationProperties.AutomationId="GridKarsilastir">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Dikkat}" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource UyariZeminFircasi}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Anahtar" Binding="{Binding Anahtar}" Width="1.4*" />
+                <DataGridTextColumn Header="Durum" Binding="{Binding Durum}" Width="Auto" />
+                <DataGridTextColumn Header="Farklı kolonlar" Binding="{Binding Farklar}" Width="3*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

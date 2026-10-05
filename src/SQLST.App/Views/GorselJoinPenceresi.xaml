@@ -1,0 +1,59 @@
+<Window x:Class="SQLST.App.Views.GorselJoinPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Name="Kok"
+        Title="SQLST — JOIN düzenle" Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,10" TextWrapping="Wrap"
+                   Text="{Binding Baslik, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold" />
+
+        <!-- Join tipi -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBlock Text="Join tipi:" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox Width="180" HorizontalAlignment="Left"
+                      ItemsSource="{Binding JoinTurleri, RelativeSource={RelativeSource AncestorType=Window}}"
+                      SelectedItem="{Binding Tur}"
+                      AutomationProperties.AutomationId="CmbJoinTuru" />
+        </DockPanel>
+
+        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,6"
+                   Text="ON eşleşmesi (sol kolon = sağ kolon):"
+                   Foreground="{DynamicResource SolukMetinFircasi}" />
+
+        <!-- Alt düğmeler -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Left" Content="🗑 Bağı sil" Padding="12,5"
+                    Click="Sil_Click" Foreground="{DynamicResource TehlikeFircasi}"
+                    AutomationProperties.AutomationId="BtnJoinSil" />
+            <Button DockPanel.Dock="Right" Content="Tamam" Padding="22,5" IsDefault="True"
+                    Style="{StaticResource BirincilDugme}" Click="Tamam_Click"
+                    AutomationProperties.AutomationId="BtnJoinTamam" />
+            <Button DockPanel.Dock="Right" Content="+ Kolon çifti" Padding="12,5" Margin="0,0,8,0"
+                    Click="KolonCiftEkle_Click"
+                    AutomationProperties.AutomationId="BtnJoinKolonEkle" />
+        </DockPanel>
+
+        <!-- Kolon çiftleri -->
+        <ItemsControl ItemsSource="{Binding Kolonlar}" AutomationProperties.AutomationId="JoinKolonlar">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel Margin="0,3">
+                        <Button DockPanel.Dock="Right" Content="✕" Padding="6,0" Margin="6,0,0,0"
+                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                Click="KolonCiftSil_Click" ToolTip="Bu kolon çiftini kaldır" />
+                        <ComboBox Width="200"
+                                  ItemsSource="{Binding SolKolonAdlari, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  SelectedItem="{Binding SolKolon}" />
+                        <TextBlock Text=" = " VerticalAlignment="Center" Margin="6,0"
+                                   FontWeight="Bold" />
+                        <ComboBox ItemsSource="{Binding SagKolonAdlari, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  SelectedItem="{Binding SagKolon}" />
+                    </DockPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</Window>

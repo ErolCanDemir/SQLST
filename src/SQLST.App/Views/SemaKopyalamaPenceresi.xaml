@@ -1,0 +1,78 @@
+<Window x:Class="SQLST.App.Views.SemaKopyalamaPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Şema Kopyalama" Width="640" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True" ResizeMode="NoResize"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <StackPanel Margin="14">
+        <Border Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3" Padding="10,7" Margin="0,0,0,10"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Kaynak veritabanının ŞEMASI (tablo + PK + index + FK + view/SP/fonksiyon) hedefe kurulur — VERİ KOPYALANMAZ. Hedef veritabanı yoksa oluşturulur. Trigger/kullanıcı/izinler kapsam dışıdır. (SQL Server → SQL Server)"
+                       AutomationProperties.AutomationId="LblKopyaNot" />
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Kaynak:" VerticalAlignment="Center" Margin="0,0,8,6"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="KaynakEtiket" VerticalAlignment="Center" Margin="0,0,0,6"
+                       FontWeight="SemiBold" AutomationProperties.AutomationId="LblKopyaKaynak" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Hedef bağlantı:" VerticalAlignment="Center" Margin="0,0,8,6"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <!-- String listesi bağlanır (ad) — özel ComboBox şablonumuz DisplayMemberPath'i seçili
+                 kutuda uygulamıyor (render bulgusu 2026-07-31: tip adı görünüyordu). -->
+            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="HedefProfil" Margin="0,0,0,6"
+                      ToolTip="Kayıtlı SQL Server bağlantılarından biri (kaynağın kendisi de olabilir)"
+                      AutomationProperties.AutomationId="CmbKopyaHedefProfil" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Hedef veritabanı:" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox Grid.Row="2" Grid.Column="1" x:Name="HedefDb" Padding="6,3"
+                     ToolTip="Yoksa oluşturulur; varsa şema içine kurulur (çakışan nesneler hata olarak raporlanır)"
+                     AutomationProperties.AutomationId="TxtKopyaHedefDb" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <TextBlock Text="Kapsam:" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <CheckBox x:Name="KapsamIndex" Content="Index" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center" />
+            <CheckBox x:Name="KapsamFk" Content="FK" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center" />
+            <CheckBox x:Name="KapsamView" Content="View" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center" />
+            <CheckBox x:Name="KapsamSp" Content="SP" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center" />
+            <CheckBox x:Name="KapsamFn" Content="Fonksiyon" IsChecked="True" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <DockPanel Margin="0,12,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Left" Content="🧾 Script'i kaydet" Padding="12,5"
+                    Click="ScriptKaydet_Click"
+                    ToolTip="Kopyalamadan, tüm şema script'ini tek .sql dosyasına yazar (incele / başka yerde çalıştır)"
+                    AutomationProperties.AutomationId="BtnKopyaScript" />
+            <Button DockPanel.Dock="Right" x:Name="KopyalaDugmesi" Content="📤 Kopyala" Padding="16,5"
+                    Style="{StaticResource BirincilDugme}" Click="Kopyala_Click"
+                    AutomationProperties.AutomationId="BtnKopyala" />
+            <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="■ Durdur" Padding="12,5" Margin="0,0,8,0"
+                    IsEnabled="False" Click="Durdur_Click"
+                    AutomationProperties.AutomationId="BtnKopyaDurdur" />
+        </DockPanel>
+
+        <TextBlock x:Name="Durum" Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12.5"
+                   Foreground="{DynamicResource BilgiMetinFircasi}"
+                   Text="Hedefi seçip Kopyala'ya basın."
+                   AutomationProperties.AutomationId="LblKopyaDurum" />
+        <TextBox x:Name="Rapor" Margin="0,8,0,0" Height="140" IsReadOnly="True" TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                 FontFamily="Consolas" FontSize="12" Visibility="Collapsed"
+                 AutomationProperties.AutomationId="TxtKopyaRapor" />
+    </StackPanel>
+</Window>

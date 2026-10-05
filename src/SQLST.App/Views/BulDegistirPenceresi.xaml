@@ -1,0 +1,52 @@
+<Window x:Class="SQLST.App.Views.BulDegistirPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Bul ve Değiştir" SizeToContent="WidthAndHeight" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <StackPanel Margin="14" Width="380">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bul:" VerticalAlignment="Center" Margin="0,0,8,6"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="BulKutusu" Margin="0,0,0,6" Padding="4,3"
+                     VerticalContentAlignment="Center" AutomationProperties.AutomationId="TxtBul" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Değiştir:" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox Grid.Row="1" Grid.Column="1" x:Name="DegistirKutusu" Padding="4,3"
+                     VerticalContentAlignment="Center" AutomationProperties.AutomationId="TxtDegistir" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <CheckBox x:Name="BuyukKucuk" Content="BÜYÜK/küçük" VerticalAlignment="Center" Margin="0,0,14,0"
+                      ToolTip="Büyük/küçük harfe duyarlı ara" AutomationProperties.AutomationId="ChkBuyukKucuk" />
+            <CheckBox x:Name="TamSozcuk" Content="Tam sözcük" VerticalAlignment="Center" Margin="0,0,14,0"
+                      ToolTip="Yalnız tam sözcükleri eşleştir" AutomationProperties.AutomationId="ChkTamSozcuk" />
+            <CheckBox x:Name="RegexKutusu" Content=".* regex" VerticalAlignment="Center"
+                      ToolTip="Düzenli ifade (regex) olarak yorumla" AutomationProperties.AutomationId="ChkRegex" />
+        </StackPanel>
+
+        <TextBlock x:Name="Durum" Margin="0,10,0,0" TextWrapping="Wrap" MinHeight="16"
+                   Foreground="{DynamicResource SolukMetinFircasi}" FontSize="11.5"
+                   AutomationProperties.AutomationId="LblDurum" />
+
+        <DockPanel Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="Kapat" Padding="14,5" Margin="8,0,0,0"
+                    Click="Kapat_Click" AutomationProperties.AutomationId="BtnKapat" />
+            <Button DockPanel.Dock="Right" Content="Tümünü değiştir" Padding="12,5" Margin="8,0,0,0"
+                    Click="TumunuDegistir_Click" AutomationProperties.AutomationId="BtnTumunuDegistir" />
+            <Button DockPanel.Dock="Right" Content="Değiştir" Padding="12,5" Margin="8,0,0,0"
+                    Click="Degistir_Click" AutomationProperties.AutomationId="BtnDegistir" />
+            <Button DockPanel.Dock="Left" Content="↓ Sonrakini bul" Padding="12,5" IsDefault="True"
+                    Click="SonrakiniBul_Click" AutomationProperties.AutomationId="BtnSonraki" />
+        </DockPanel>
+    </StackPanel>
+</Window>

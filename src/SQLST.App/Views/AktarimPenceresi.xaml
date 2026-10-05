@@ -1,0 +1,179 @@
+<Window x:Class="SQLST.App.Views.AktarimPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Paket Aktarım" Width="940" Height="680"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <!-- Üst bilgi -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <TextBlock TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                       Text="Kaynaktan hedef tabloya veri aktarır (SSIS mantığı). Kolonlar aynı ada göre OTOMATİK eşlenir — son karar sizin. Yazma: yalnız ekle ya da 🔑 anahtara göre Ekle/Güncelle; 'önce temizle' açıkça onaylanmadıkça hedefe dokunulmaz. 500'lük partilerle yazılır; Durdur'a basıldığında o ana dek tamamlanan partiler kalır."
+                       AutomationProperties.AutomationId="LblAktarimNot" />
+        </Border>
+
+        <!-- Kaynak / Hedef seçimleri -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /><ColumnDefinition Width="24" /><ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <GroupBox Grid.Column="0" Header="KAYNAK (bağlı olduğunuz)" Padding="8"
+                      Foreground="{DynamicResource SolukMetinFircasi}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Bağlantı:" VerticalAlignment="Center" Margin="0,3" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" x:Name="KaynakProfilAdi" VerticalAlignment="Center"
+                               FontWeight="SemiBold" Foreground="{DynamicResource MetinFircasi}" Margin="0,3" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="KaynakDb" Margin="0,3"
+                              SelectionChanged="KaynakDb_Secildi"
+                              AutomationProperties.AutomationId="CmbAktKaynakDb" />
+                    <!-- v12-S3: kaynak İKİ KİPLİ — Tablo (S2) veya Sorgu (serbest SELECT sonucu hedefe).
+                         Sekme değişimi de grid'i tazeler; ComboBox SelectionChanged'leri buraya
+                         KÖPÜRDÜĞÜNDEN handler OriginalSource süzer. -->
+                    <TabControl Grid.Row="2" Grid.ColumnSpan="2" x:Name="KaynakKip" Margin="0,6,0,0"
+                                SelectionChanged="KaynakKip_Degisti"
+                                AutomationProperties.AutomationId="TabAktKaynakKip">
+                        <TabItem Header="Tablo">
+                            <DockPanel Margin="6">
+                                <TextBlock DockPanel.Dock="Left" Text="Tablo:" VerticalAlignment="Center"
+                                           Width="84" Foreground="{DynamicResource SolukMetinFircasi}" />
+                                <ComboBox x:Name="KaynakTablo" VerticalAlignment="Center"
+                                          SelectionChanged="TabloSecimi_Degisti"
+                                          AutomationProperties.AutomationId="CmbAktKaynakTablo" />
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="Sorgu" AutomationProperties.AutomationId="TabAktSorguKip">
+                            <DockPanel Margin="6">
+                                <Button DockPanel.Dock="Bottom" x:Name="KolonlariGetirDugmesi" Content="Kolonları getir"
+                                        HorizontalAlignment="Right" Margin="0,6,0,0" Padding="12,4"
+                                        Click="KolonlariGetir_Click"
+                                        ToolTip="Sorgu satır ÇEKMEDEN çalıştırılır (yalnız şema) — sonuç kolonları eşleme gridine gelir"
+                                        AutomationProperties.AutomationId="BtnAktKolonlariGetir" />
+                                <TextBox x:Name="SorguMetni" AcceptsReturn="True" TextWrapping="NoWrap"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         FontFamily="{StaticResource KodYazisi}" MinHeight="52"
+                                         VerticalContentAlignment="Top"
+                                         AutomationProperties.AutomationId="TxtAktSorgu" />
+                            </DockPanel>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </GroupBox>
+            <TextBlock Grid.Column="1" Text="→" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" Foreground="{DynamicResource VurguFircasi}" />
+            <GroupBox Grid.Column="2" Header="HEDEF" Padding="8"
+                      Foreground="{DynamicResource SolukMetinFircasi}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Bağlantı:" VerticalAlignment="Center" Margin="0,3" />
+                    <!-- ItemTemplate (DisplayMemberPath değil): temadaki combo şablonunun seçim kutusu
+                         SelectionBoxItemTemplate'i DisplayMemberPath'ten türetmiyor → seçili profil
+                         ToString ("SQLST.Contracts.ConnectionProfile") görünüyordu (render kanıtı). -->
+                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="HedefProfil" Margin="0,3"
+                              SelectionChanged="HedefProfil_Secildi"
+                              ToolTip="Kayıtlı profillerden seçin (SQL ailesi). Listede yoksa önce Bağlantı ekranından profil kaydedin."
+                              AutomationProperties.AutomationId="CmbAktHedefProfil">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run Text="{Binding Ad, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="  " /><Run
+                                        Text="{Binding Sunucu, Mode=OneWay}"
+                                        Foreground="{DynamicResource SolukMetinFircasi}" />
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="HedefDb" Margin="0,3"
+                              SelectionChanged="HedefDb_Secildi"
+                              AutomationProperties.AutomationId="CmbAktHedefDb" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Tablo:" VerticalAlignment="Center" Margin="0,3" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="HedefTablo" Margin="0,3"
+                              SelectionChanged="TabloSecimi_Degisti"
+                              AutomationProperties.AutomationId="CmbAktHedefTablo" />
+                </Grid>
+            </GroupBox>
+        </Grid>
+
+        <!-- Seçenekler + çalıştırma -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" x:Name="AktarDugmesi" Content="📦 Aktar" Padding="18,6"
+                    Style="{StaticResource BirincilDugme}" Click="Aktar_Click"
+                    AutomationProperties.AutomationId="BtnAktar" />
+            <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="■ Durdur" Padding="12,6"
+                    Margin="0,0,8,0" IsEnabled="False" Click="Durdur_Click"
+                    AutomationProperties.AutomationId="BtnAktarDurdur" />
+            <TextBlock Text="Yazma:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="YazmaKipi" Width="185" VerticalAlignment="Center" SelectedIndex="0"
+                      ToolTip="Ekle/Güncelle: hedefin birincil anahtarına (🔑) göre var olan satır GÜNCELLENİR, olmayan eklenir"
+                      AutomationProperties.AutomationId="CmbAktYazmaKipi" />
+            <CheckBox x:Name="OnceTemizle" Content="Önce hedefi TEMİZLE (DELETE)" VerticalAlignment="Center"
+                      Margin="16,0,0,0"
+                      ToolTip="Aktarımdan önce hedef tablodaki TÜM satırlar silinir — başlatırken ayrıca onay istenir"
+                      AutomationProperties.AutomationId="ChkAktTemizle" />
+            <TextBlock Text="Hata olursa:" VerticalAlignment="Center" Margin="16,0,6,0"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <ComboBox x:Name="HataPolitikasi" Width="170" VerticalAlignment="Center" SelectedIndex="0"
+                      AutomationProperties.AutomationId="CmbAktHataPolitikasi" />
+        </DockPanel>
+
+        <!-- Durum + ilerleme -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource BilgiZeminFircasi}" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,8,0,0">
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Bottom" x:Name="Ilerleme" Height="8" Margin="0,6,0,0"
+                             IsIndeterminate="False" Visibility="Collapsed"
+                             AutomationProperties.AutomationId="PrgAktarim" />
+                <!-- v22-S16: atlanan satırların TAM listesi dosyaya (rapor kutusu ilk 20'yi gösterir) -->
+                <Button DockPanel.Dock="Bottom" x:Name="BtnHataRaporu" Content="⬇ Hata raporunu kaydet"
+                        Visibility="Collapsed" HorizontalAlignment="Left" Padding="10,3" Margin="0,6,0,0"
+                        Click="HataRaporu_Click"
+                        ToolTip="Atlanan satırların TAM listesini metin dosyasına yazar (rapor kutusunda yalnız ilk 20 örnek görünür)"
+                        AutomationProperties.AutomationId="BtnAktarimHataRaporu" />
+                <!-- v12-S4: aktarım sonu raporu — kopyalanabilir, yalnız bitince görünür -->
+                <TextBox DockPanel.Dock="Bottom" x:Name="Rapor" IsReadOnly="True" Visibility="Collapsed"
+                         FontFamily="{StaticResource KodYazisi}" FontSize="12" Margin="0,6,0,0"
+                         MaxHeight="110" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                         HorizontalScrollBarVisibility="Auto" BorderThickness="1"
+                         BorderBrush="{DynamicResource KenarFircasi}"
+                         Background="{DynamicResource PencereZeminFircasi}"
+                         AutomationProperties.AutomationId="TxtAktarimRapor" />
+                <TextBlock x:Name="Durum" TextWrapping="Wrap" FontSize="12.5"
+                           Foreground="{DynamicResource BilgiMetinFircasi}"
+                           Text="Kaynak ve hedef tabloyu seçin — kolonlar otomatik eşlenecek."
+                           AutomationProperties.AutomationId="LblAktarimDurum" />
+            </DockPanel>
+        </Border>
+
+        <!-- Eşleme gridi: her HEDEF kolon için kaynak seçimi (boş = aktarma) -->
+        <DataGrid x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  AutomationProperties.AutomationId="AktarimEslemeGrid">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Hedef kolon" Binding="{Binding HedefGosterim}" IsReadOnly="True" Width="220" />
+                <DataGridTextColumn Header="Tip" Binding="{Binding HedefTip}" IsReadOnly="True" Width="140" />
+                <DataGridTemplateColumn Header="Kaynak kolon (boş = aktarma)" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding KaynakAdaylar}" SelectedItem="{Binding KaynakKolon, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="2" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

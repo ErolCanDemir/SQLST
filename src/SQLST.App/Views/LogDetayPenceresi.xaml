@@ -1,0 +1,38 @@
+<Window x:Class="SQLST.App.Views.LogDetayPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Grup Detayı" Width="1040" Height="640"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <DockPanel Margin="14">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource PanelZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,7" Margin="0,0,0,10">
+            <StackPanel>
+                <TextBlock x:Name="BaslikMetni" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"
+                           AutomationProperties.AutomationId="LblDetayBaslik" />
+                <TextBlock x:Name="OzetMetni" FontSize="12" Margin="0,4,0,0"
+                           Foreground="{DynamicResource SolukMetinFircasi}"
+                           AutomationProperties.AutomationId="LblDetayOzet" />
+            </StackPanel>
+        </Border>
+
+        <!-- Zaman dağılımı (sparkline): bu grubun kayıtlarının saatlik/günlük yoğunluğu -->
+        <Border DockPanel.Dock="Top" x:Name="SparklineKap" Background="{DynamicResource PanelZeminFircasi}" CornerRadius="3"
+                BorderThickness="1" BorderBrush="{DynamicResource KenarFircasi}" Padding="10,8" Margin="0,0,0,10">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" x:Name="SparklineBaslik" Text="Zaman dağılımı" FontWeight="SemiBold"
+                           FontSize="12" Margin="0,0,0,6" Foreground="{DynamicResource SolukMetinFircasi}" />
+                <StackPanel x:Name="Sparkline" Orientation="Horizontal" Height="64" VerticalAlignment="Bottom"
+                            AutomationProperties.AutomationId="LogSparkline" />
+            </DockPanel>
+        </Border>
+
+        <TextBlock DockPanel.Dock="Top" Text="Bu gruba düşen ham kayıtlar (en yeni önce):" FontSize="12"
+                   Margin="0,0,0,6" Foreground="{DynamicResource SolukMetinFircasi}" />
+
+        <DataGrid x:Name="DetayGrid" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="All" EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
+                  AutomationProperties.AutomationId="LogDetayGrid" />
+    </DockPanel>
+</Window>

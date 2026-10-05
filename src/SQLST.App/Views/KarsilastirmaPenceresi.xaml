@@ -1,0 +1,148 @@
+<Window x:Class="SQLST.App.Views.KarsilastirmaPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Karşılaştırma" Width="1080" Height="660"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}" MinWidth="760" MinHeight="440">
+    <TabControl Margin="8">
+        <!-- Ö4: iki sonucun anahtar kolonlu diff'i -->
+        <TabItem Header="Sonuç diff'i" AutomationProperties.AutomationId="TabSonucDiff">
+            <DockPanel Margin="8">
+                <!-- Amaç şeridi (kullanıcı geri bildirimi 2026-07-17): iki liste aynı havuzdur,
+                     fark KAYNAKLAR farklı ortama/zamana bakınca doğar -->
+                <Border DockPanel.Dock="Top" Background="{DynamicResource BilgiZeminFircasi}" Padding="8,5" Margin="0,0,0,8">
+                    <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource BilgiMetinFircasi}"
+                               Text="Tipik kullanım: AYNI sorguyu iki sekmede FARKLI hedeflere karşı çalıştırın (her sekmenin üstündeki DB seçicisiyle — ör. test vs prod) ya da aynı sorgunun önce/sonra iki çalıştırmasını alın; sonra burada A ve B olarak seçip karşılaştırın. İki farklı tabloyu kıyaslamak anlamlı sonuç vermez." />
+                </Border>
+                <Grid DockPanel.Dock="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="220" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <DockPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock DockPanel.Dock="Top" Text="A (eski / referans)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <ComboBox x:Name="KaynakA" SelectionChanged="Kaynak_Degisti"
+                                  DisplayMemberPath="Gosterim"
+                                  AutomationProperties.AutomationId="CmbKaynakA" />
+                    </DockPanel>
+                    <DockPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock DockPanel.Dock="Top" Text="B (yeni / kıyaslanan)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <ComboBox x:Name="KaynakB" SelectionChanged="Kaynak_Degisti"
+                                  DisplayMemberPath="Gosterim"
+                                  AutomationProperties.AutomationId="CmbKaynakB" />
+                    </DockPanel>
+                    <DockPanel Grid.Column="2" Margin="0,0,8,0">
+                        <TextBlock DockPanel.Dock="Top" Text="Anahtar kolon(lar)" FontWeight="SemiBold" Margin="0,0,0,4"
+                                   ToolTip="Satır kimliğini belirleyen kolonlar — birden çok seçilebilir" />
+                        <ListBox x:Name="AnahtarKolonlar" SelectionMode="Multiple" MaxHeight="72"
+                                 AutomationProperties.AutomationId="ListAnahtarKolonlar" />
+                    </DockPanel>
+                    <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                        <CheckBox x:Name="AynilarDaGorunsun" Content="aynıları da göster" Margin="0,0,0,6" />
+                        <Button Content="⇄ Karşılaştır" Padding="14,5" Click="SonucKarsilastir_Click"
+                                AutomationProperties.AutomationId="BtnSonucKarsilastir" />
+                    </StackPanel>
+                </Grid>
+                <DockPanel DockPanel.Dock="Top" Margin="0,8,0,4">
+                    <Button DockPanel.Dock="Right" Content="↓ CSV" Padding="8,2" Click="FarkCsv_Click"
+                            AutomationProperties.AutomationId="BtnFarkCsv" />
+                    <TextBlock x:Name="SonucOzeti" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource BilgiMetinFircasi}"
+                               AutomationProperties.AutomationId="LblFarkOzeti" />
+                </DockPanel>
+                <DataGrid x:Name="FarkGrid" IsReadOnly="True" AutoGenerateColumns="True"
+                          EnableRowVirtualization="True" HeadersVisibility="Column"
+                          BorderThickness="0,1,0,1"
+                          AutomationProperties.AutomationId="GridFark">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding [Durum]}" Value="⬅ yalnız A">
+                                    <Setter Property="Background" Value="{DynamicResource FarkSilinenZeminFircasi}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding [Durum]}" Value="➡ yalnız B">
+                                    <Setter Property="Background" Value="{DynamicResource FarkEklenenZeminFircasi}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding [Durum]}" Value="≠ farklı">
+                                    <Setter Property="Background" Value="{DynamicResource UyariZeminFircasi}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                </DataGrid>
+            </DockPanel>
+        </TabItem>
+
+        <!-- Ö5: şema snapshot + fark -->
+        <TabItem Header="Şema snapshot + fark" AutomationProperties.AutomationId="TabSemaFark">
+            <DockPanel Margin="8">
+                <Grid DockPanel.Dock="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Veritabanı:" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox Grid.Column="1" x:Name="SemaDb" AutomationProperties.AutomationId="CmbSemaDb" />
+                    <Button Grid.Column="2" Content="📸 Snapshot'ı dosyaya kaydet" Margin="10,0,0,0" Padding="10,4"
+                            Click="SnapshotKaydet_Click"
+                            ToolTip="Seçili veritabanının şemasını (nesne+kolon+parametre) JSON dosyasına alır"
+                            AutomationProperties.AutomationId="BtnSnapshotKaydet" />
+                </Grid>
+                <Grid DockPanel.Dock="Top" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <DockPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock DockPanel.Dock="Top" Text="Eski (A)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <Button DockPanel.Dock="Right" Content="Gözat…" Padding="8,2" Margin="4,0,0,0" Click="EskiGozat_Click"
+                                AutomationProperties.AutomationId="BtnEskiGozat" />
+                        <TextBox x:Name="EskiYol" IsReadOnly="True" Padding="4,3"
+                                 Text="(snapshot dosyası seçin)" Foreground="{DynamicResource SolukMetinFircasi}"
+                                 AutomationProperties.AutomationId="TxtEskiYol" />
+                    </DockPanel>
+                    <DockPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock DockPanel.Dock="Top" Text="Yeni (B)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <Button DockPanel.Dock="Right" Content="Gözat…" Padding="8,2" Margin="4,0,0,0" Click="YeniGozat_Click"
+                                AutomationProperties.AutomationId="BtnYeniGozat" />
+                        <ComboBox x:Name="YeniKaynak" SelectedIndex="0" AutomationProperties.AutomationId="CmbYeniKaynak">
+                            <ComboBoxItem Content="Canlı veritabanı (yukarıda seçili)" />
+                            <ComboBoxItem x:Name="YeniDosyaSecenegi" Content="(dosya seçin — Gözat)" />
+                        </ComboBox>
+                    </DockPanel>
+                    <Button Grid.Column="2" Content="⇄ Karşılaştır" Padding="14,5" VerticalAlignment="Bottom"
+                            Click="SemaKarsilastir_Click"
+                            AutomationProperties.AutomationId="BtnSemaKarsilastir" />
+                </Grid>
+                <DockPanel DockPanel.Dock="Top" Margin="0,8,0,4">
+                    <Button DockPanel.Dock="Right" Content="↓ CSV" Padding="8,2" Click="SemaCsv_Click"
+                            AutomationProperties.AutomationId="BtnSemaCsv" />
+                    <TextBlock x:Name="SemaOzeti" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource BilgiMetinFircasi}"
+                               AutomationProperties.AutomationId="LblSemaOzeti" />
+                </DockPanel>
+                <DataGrid x:Name="SemaGrid" IsReadOnly="True" AutoGenerateColumns="True"
+                          EnableRowVirtualization="True" HeadersVisibility="Column" BorderThickness="0,1,0,1"
+                          AutomationProperties.AutomationId="GridSemaFark">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding [Değişim]}" Value="＋ eklendi">
+                                    <Setter Property="Background" Value="{DynamicResource FarkEklenenZeminFircasi}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding [Değişim]}" Value="－ silindi">
+                                    <Setter Property="Background" Value="{DynamicResource FarkSilinenZeminFircasi}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding [Değişim]}" Value="≠ değişti">
+                                    <Setter Property="Background" Value="{DynamicResource UyariZeminFircasi}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                </DataGrid>
+            </DockPanel>
+        </TabItem>
+    </TabControl>
+</Window>

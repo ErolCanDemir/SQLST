@@ -1,0 +1,15 @@
+# SQLST Yerel AI — v21-S3
+# Kuruluma gömülü GGUF'tan Ollama modelini kaydeder (ollama create qwen2.5-coder:7b -f Modelfile).
+# Kapalı ağda internet gerekmez; GGUF yereldedir. Model qwen2.5-coder:7b (Apache-2.0).
+FROM ./qwen2.5-coder-7b-q4_k_m.gguf
+
+# Deterministik SQL için düşük sıcaklık (POC: temperature 0.1-0.2 lehçe kaçağını azaltıyor).
+PARAMETER temperature 0.2
+# num_ctx: SQLST istekleri sema baglami + sorgu ile buyuyebiliyor (6374 token istek 4096'yi asiyordu).
+# 8192: tam sema (6374) sigar AMA 16384'ten kucuk KV -> CPU'da (GPU yok makinelerde) daha hizli. Prompt
+# uzunlugunu asil AsistanIstemleri kucultur (genel soruda yalniz tablo ADLARI; SQL sorusunda ilgili tablolar).
+PARAMETER num_ctx 8192
+# NOT: keep_alive bir Modelfile PARAMETER'i DEĞİLDİR ("Error: unknown parameter" — v21 review, gerçek
+# ollama create testi 2026-08-09). Boşta boşaltma çalışma-zamanı ayarıdır (Ollama varsayılanı zaten 5 dk).
+
+SYSTEM """Sen SQLST veritabanı aracının yerel yardımcısısın. Türkçe, kısa ve doğru cevap ver. SQL üretirken bağlı motorun söz dizimine harfiyen uy."""

@@ -1,0 +1,55 @@
+<Window x:Class="SQLST.App.Views.MongoShellPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — 📋 Shell yapıştır" Width="820" Height="600"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <!-- v22-S3 saha turu-3 m.4 (kullanıcı: "shell yapıştır butonuna basınca ekran açılmıyor muydu?
+         açılmıyor, bir sorun var"): ESKİDEN ekran YOKTU — düğme panoyu sessizce okur, çeviremezse
+         yalnız ana penceredeki durum çubuğuna yazardı; kullanıcı hiçbir şey olmadığını görüyordu.
+         Artık ekran açılır: pano ön-dolu, metin DÜZENLENEBİLİR ve çeviri yazdıkça yenilenir —
+         hata da burada, girdinin yanında görünür. -->
+    <DockPanel Margin="16,14,16,12">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="{DynamicResource SolukMetinFircasi}"
+                   Text="Mongo shell komutunu yapıştır — db.koleksiyon.find({…}).sort({…}).limit(n) · findOne · aggregate · countDocuments. Çeviri anında yenilenir." />
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="SekmedeAcDugmesi" Content="▶ Sekmede aç" Padding="12,4" Margin="0,0,8,0"
+                    Click="SekmedeAc_Click" AutomationProperties.AutomationId="BtnShellSekmedeAc" />
+            <Button x:Name="KopyalaDugmesi" Content="📋 Kopyala" Padding="12,4" Margin="0,0,8,0"
+                    Click="Kopyala_Click" AutomationProperties.AutomationId="BtnShellKopyala" />
+            <Button Content="Kapat" Padding="16,4" IsCancel="True"
+                    AutomationProperties.AutomationId="BtnShellKapat" />
+        </StackPanel>
+
+        <Grid Margin="0,10,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="2*" />
+            </Grid.RowDefinitions>
+
+            <!-- Wrap: shell komutu tek uzun satır olur; sarılmazsa kullanıcı yatayda kaydırmadan
+                 komutun başını göremiyor (ilk görselde metin sağa kaymış görünüyordu). -->
+            <TextBox Grid.Row="0" x:Name="Girdi" AcceptsReturn="True" TextWrapping="Wrap"
+                     VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Disabled" FontFamily="Cascadia Mono, Consolas"
+                     FontSize="12.5" Padding="6" TextChanged="Girdi_Degisti"
+                     Background="{DynamicResource ZeminAcikFircasi}"
+                     AutomationProperties.AutomationId="TxtShellGirdi" />
+
+            <TextBlock Grid.Row="1" x:Name="Durum" Margin="2,8,2,4" TextWrapping="Wrap" FontSize="12.5"
+                       AutomationProperties.AutomationId="LblShellDurum" />
+
+            <Border Grid.Row="2" Padding="8" CornerRadius="3"
+                    Background="{DynamicResource EditorZeminFircasi}" BorderThickness="1"
+                    BorderBrush="{DynamicResource KenarFircasi}">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="Cikti" FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                               Foreground="{DynamicResource EditorMetinFircasi}"
+                               AutomationProperties.AutomationId="LblShellCikti" />
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

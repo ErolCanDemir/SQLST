@@ -1,0 +1,77 @@
+<Window x:Class="SQLST.App.Views.MongoBulPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLST — Mongo find yardımcısı" Width="560" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
+    <StackPanel Margin="14">
+        <TextBlock Text="Alanları doldurun; çalıştırılacak find JSON'u üretilip yeni sekmede açılır (F5 ile çalıştırın)."
+                   TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource SolukMetinFircasi}" />
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Koleksiyon:" VerticalAlignment="Center" Margin="0,4"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <!-- m.5: koleksiyon seçilince alanlarının getirildiği burada görünür ("12 alan") -->
+            <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,4">
+                <TextBlock DockPanel.Dock="Right" x:Name="AlanNotu" VerticalAlignment="Center"
+                           Margin="8,0,0,0" FontSize="11.5" MinWidth="96"
+                           Foreground="{DynamicResource SolukMetinFircasi}"
+                           AutomationProperties.AutomationId="LblMongoAlanNotu" />
+                <TextBox x:Name="KoleksiyonKutusu" Padding="4,3"
+                         AutomationProperties.AutomationId="TxtMongoKoleksiyon" />
+            </DockPanel>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Filter:" VerticalAlignment="Top" Margin="0,6"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox Grid.Row="1" Grid.Column="1" x:Name="FilterKutusu" Margin="0,4" Padding="4,3" Height="52"
+                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                     FontFamily="{StaticResource KodYazisi}" ToolTip="JSON, ör. { &quot;aktif&quot;: true, &quot;yas&quot;: { &quot;$gte&quot;: 18 } }"
+                     AutomationProperties.AutomationId="TxtMongoFilter" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Sort:" VerticalAlignment="Center" Margin="0,4"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox Grid.Row="2" Grid.Column="1" x:Name="SortKutusu" Margin="0,4" Padding="4,3"
+                     FontFamily="{StaticResource KodYazisi}" ToolTip="JSON, ör. { &quot;ad&quot;: 1, &quot;tarih&quot;: -1 }"
+                     AutomationProperties.AutomationId="TxtMongoSort" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Project:" VerticalAlignment="Center" Margin="0,4"
+                       Foreground="{DynamicResource SolukMetinFircasi}" />
+            <TextBox Grid.Row="3" Grid.Column="1" x:Name="ProjectKutusu" Margin="0,4" Padding="4,3"
+                     FontFamily="{StaticResource KodYazisi}" ToolTip="JSON, ör. { &quot;ad&quot;: 1, &quot;_id&quot;: 0 }"
+                     AutomationProperties.AutomationId="TxtMongoProject" />
+
+            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                <TextBlock Text="Limit:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                <TextBox x:Name="LimitKutusu" Width="70" Padding="4,3" Margin="0,0,16,0"
+                         AutomationProperties.AutomationId="TxtMongoLimit" />
+                <TextBlock Text="Skip:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource SolukMetinFircasi}" />
+                <TextBox x:Name="SkipKutusu" Width="70" Padding="4,3"
+                         AutomationProperties.AutomationId="TxtMongoSkip" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock x:Name="HataMetni" Margin="0,8,0,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TehlikeFircasi}"
+                   AutomationProperties.AutomationId="LblMongoHata" />
+
+        <DockPanel Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Content="▶ Üret" Padding="20,5" IsDefault="True"
+                    Style="{StaticResource BirincilDugme}" Click="Uret_Click"
+                    AutomationProperties.AutomationId="BtnMongoUret" />
+            <Button DockPanel.Dock="Right" Content="İptal" Padding="16,5" Margin="0,0,8,0"
+                    Click="Iptal_Click" AutomationProperties.AutomationId="BtnMongoIptal" />
+            <TextBlock />
+        </DockPanel>
+    </StackPanel>
+</Window>
