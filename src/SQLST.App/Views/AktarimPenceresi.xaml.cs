@@ -268,8 +268,9 @@ public partial class AktarimPenceresi : Window
             + $"{eslesmeler.Count} kolon · yazma: "
             + (ekleGuncelle ? $"Ekle/Güncelle (anahtar: {string.Join(", ", anahtarlar)})" : "Yalnız ekle") + "."
             + (OnceTemizle.IsChecked == true ? "\n\n⚠ ÖNCE HEDEF TABLO TEMİZLENECEK (DELETE)!" : "");
-        if (MessageBox.Show(this, ozet + "\n\nBaşlatılsın mı?", "SQLST — Paket Aktarım",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        bool temizle = OnceTemizle.IsChecked == true;
+        if (!Iletisim.Sor(this, "SQLST — Paket Aktarım", "Aktarım başlatılsın mı?", ozet,
+                temizle ? "Temizle ve aktar" : "▶ Aktarımı başlat", temizle ? IletisimTuru.Tehlike : IletisimTuru.Soru))
             return;
 
         // Sorgu kipinde kullanıcının SQL'i AYNEN gider (motor eşlenen kolonları ada göre seçer);

@@ -147,14 +147,14 @@
                 <ColumnDefinition Width="2*" />
             </Grid.ColumnDefinitions>
             <DataGrid Grid.Column="0" x:Name="OnizlemeGrid" AutoGenerateColumns="True" IsReadOnly="True"
-                      CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      CanUserAddRows="False" HeadersVisibility="Column"
                       EnableRowVirtualization="True" EnableColumnVirtualization="True"
                       AutoGeneratingColumn="OnizlemeGrid_AutoGeneratingColumn"
                       AutomationProperties.AutomationId="ImportOnizlemeGrid" />
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                           Background="{DynamicResource KenarFircasi}" />
             <DataGrid Grid.Column="2" x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
                       AutomationProperties.AutomationId="ImportEslemeGrid">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Hedef kolon" Binding="{Binding HedefGosterim}" IsReadOnly="True" Width="150" />

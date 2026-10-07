@@ -32,17 +32,17 @@
         <TabControl Background="Transparent" BorderThickness="0">
             <TabItem x:Name="YeniSekme" Header="➕ Yeni (0)">
                 <DataGrid x:Name="YeniGrid" IsReadOnly="True" AutoGenerateColumns="True"
-                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
                           Background="Transparent" AutomationProperties.AutomationId="GridYeni" />
             </TabItem>
             <TabItem x:Name="DegisenSekme" Header="✏ Değişen (0)">
                 <DataGrid x:Name="DegisenGrid" IsReadOnly="True" AutoGenerateColumns="True"
-                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
                           Background="Transparent" AutomationProperties.AutomationId="GridDegisen" />
             </TabItem>
             <TabItem x:Name="SilinenSekme" Header="🗑 Silinecek (0)">
                 <DataGrid x:Name="SilinenGrid" IsReadOnly="True" AutoGenerateColumns="True"
-                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
                           Background="Transparent" AutomationProperties.AutomationId="GridSilinen" />
             </TabItem>
         </TabControl>

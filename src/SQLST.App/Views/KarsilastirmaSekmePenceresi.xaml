@@ -92,7 +92,7 @@
                     </WrapPanel>
                     <DataGrid ItemsSource="{Binding Farklar}" AutoGenerateColumns="False"
                               IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
-                              GridLinesVisibility="Horizontal"
+                             
                               SelectionMode="Extended" SelectionUnit="FullRow"
                               AutomationProperties.AutomationId="SemaFarkGrid">
                         <DataGrid.Columns>
@@ -163,7 +163,7 @@
                     </Border>
                     <DataGrid ItemsSource="{Binding VeriFarklari}" AutoGenerateColumns="False"
                               IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
-                              GridLinesVisibility="Horizontal" ClipboardCopyMode="ExcludeHeader"
+                              ClipboardCopyMode="ExcludeHeader"
                               SelectionMode="Extended" SelectionUnit="FullRow"
                               AutomationProperties.AutomationId="VeriFarkGrid">
                         <DataGrid.Columns>

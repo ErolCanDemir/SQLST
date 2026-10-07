@@ -81,8 +81,7 @@ public partial class KarsilastirmaSekmePenceresi : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(this, $"CSV yazılamadı: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST — Karşılaştır", "CSV yazılamadı", ex);
         }
     }
 }

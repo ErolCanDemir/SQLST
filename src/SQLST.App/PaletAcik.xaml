@@ -102,8 +102,8 @@
 
     <!-- v23-S14 GRID IZGARASI (aile başına; Antrasit tam ızgara kullanır): bu aile DEĞİŞMEDİ —
          yalnız yatay çizgi, kendi kenar rengi, başlıkta alt çizgi, kendi alternatif satır zemini. -->
-    <x:Static x:Key="GridCizgiGorunurlugu" Member="DataGridGridLinesVisibility.Horizontal" />
+    <x:Static x:Key="GridCizgiGorunurlugu" Member="DataGridGridLinesVisibility.All" />
     <SolidColorBrush x:Key="GridCizgiFircasi" Color="#E6E9F0" />
-    <Thickness x:Key="GridBaslikKenarKalinligi">0,0,0,1</Thickness>
+    <Thickness x:Key="GridBaslikKenarKalinligi">0,0,1,1</Thickness>
     <SolidColorBrush x:Key="GridAlternatifSatirFircasi" Color="#F7F8FB" />
 </ResourceDictionary>

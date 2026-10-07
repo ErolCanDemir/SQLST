@@ -25,7 +25,7 @@
         </DockPanel>
 
         <DataGrid x:Name="Grid" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column"
-                  GridLinesVisibility="Horizontal" Background="{DynamicResource PanelZeminFircasi}"
+                  Background="{DynamicResource PanelZeminFircasi}"
                   AutomationProperties.AutomationId="GrdSpParametreler">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Parametre" Binding="{Binding Ad}" IsReadOnly="True" Width="Auto" MinWidth="120" />

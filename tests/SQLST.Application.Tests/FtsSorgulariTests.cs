@@ -101,4 +101,60 @@ public class FtsSorgulariTests
         Assert.Contains("DROP FULLTEXT INDEX ON [dbo].[Belgeler];", FtsSorgulari.SilmeScripti("dbo", "Belgeler"));
         Assert.Equal(1055, FtsSorgulari.DilSecenekleri[0].Lcid); // Türkçe varsayılan aday
     }
+
+    // ── S4 (v23-S17): yönetim ────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(FtsDoldurma.Tam, "START FULL POPULATION")]
+    [InlineData(FtsDoldurma.Artimli, "START INCREMENTAL POPULATION")]
+    [InlineData(FtsDoldurma.Guncelle, "START UPDATE POPULATION")]
+    public void Doldurma_sqli_ture_gore(FtsDoldurma tur, string beklenen)
+        => Assert.Equal($"ALTER FULLTEXT INDEX ON [dbo].[Belge]]x] {beklenen};",
+            FtsSorgulari.DoldurmaSql("dbo", "Belge]x", tur)); // köşeli parantez kaçışı
+
+    [Fact]
+    public void Durdurma_izleme_ve_etkinlik_sqlleri()
+    {
+        Assert.Equal("ALTER FULLTEXT INDEX ON [dbo].[B] STOP POPULATION;", FtsSorgulari.DoldurmaDurdurSql("dbo", "B"));
+        Assert.Equal("ALTER FULLTEXT INDEX ON [dbo].[B] SET CHANGE_TRACKING = MANUAL;", FtsSorgulari.IzlemeSql("dbo", "B", "MANUAL"));
+        Assert.Throws<ArgumentException>(() => FtsSorgulari.IzlemeSql("dbo", "B", "AUTO; DROP TABLE x")); // serbest metin SQL'e girmez
+        Assert.Equal("ALTER FULLTEXT INDEX ON [dbo].[B] DISABLE;", FtsSorgulari.EtkinlikSql("dbo", "B", false));
+        Assert.Equal("ALTER FULLTEXT INDEX ON [dbo].[B] ENABLE;", FtsSorgulari.EtkinlikSql("dbo", "B", true));
+    }
+
+    [Fact]
+    public void Envanter_s4_kolonlari_ve_katalog_detayi_indexlere_dokunmaz()
+    {
+        string e = FtsSorgulari.EnvanterSorgusu();
+        foreach (string parca in new[] { "TableFulltextItemCount", "TableFulltextPendingChanges", "crawl_end_date", "N'timestamp'", "stoplist_id", "is_enabled" })
+            Assert.Contains(parca, e);
+        string k = FtsSorgulari.KatalogDetaySorgusu();
+        Assert.Contains("FULLTEXTCATALOGPROPERTY(c.name, 'IndexSize')", k);
+        Assert.DoesNotContain("fulltext_indexes", k); // index sayısı istemcide envanterden
+    }
+
+    [Fact]
+    public void Katalog_scriptleri_calistirilmaz_silmede_indexler_yorumda()
+    {
+        Assert.Equal("ALTER FULLTEXT CATALOG [Kat] REORGANIZE;", FtsSorgulari.KatalogDuzenleSql("Kat"));
+        Assert.Equal("ALTER FULLTEXT CATALOG [Kat] AS DEFAULT;", FtsSorgulari.KatalogVarsayilanSql("Kat"));
+        string rebuild = FtsSorgulari.KatalogYenidenKurScripti("Kat");
+        Assert.Contains("ÇALIŞTIRILMADI", rebuild);
+        Assert.EndsWith("ALTER FULLTEXT CATALOG [Kat] REBUILD;", rebuild);
+
+        string sil = FtsSorgulari.KatalogSilmeScripti("Kat", ["dbo.Belgeler", "talep.Talepler"]);
+        Assert.Contains("2 FULLTEXT INDEX var", sil);
+        Assert.Contains("-- DROP FULLTEXT INDEX ON [dbo].[Belgeler];", sil);   // yorumda — bilerek açılır
+        Assert.Contains("-- DROP FULLTEXT INDEX ON [talep].[Talepler];", sil);
+        Assert.EndsWith("DROP FULLTEXT CATALOG [Kat];", sil);
+        Assert.DoesNotContain("FULLTEXT INDEX var", FtsSorgulari.KatalogSilmeScripti("Bos", []));
+    }
+
+    [Fact]
+    public void Stop_kelime_sorgusu_sistem_ve_kullanici_listesi()
+    {
+        Assert.Contains("sys.fulltext_system_stopwords WHERE language_id = 1055", FtsSorgulari.StopKelimeSorgusu(0, 1055));
+        Assert.Contains("sys.fulltext_stopwords WHERE stoplist_id = 5 AND language_id = 1033", FtsSorgulari.StopKelimeSorgusu(5, 1033));
+        Assert.Contains("N'SYSTEM'", FtsSorgulari.StoplistSorgusu());
+    }
 }

@@ -29,7 +29,7 @@
                    AutomationProperties.AutomationId="LblIdIziOzet" />
 
         <DataGrid x:Name="Sonuclar" AutoGenerateColumns="False" IsReadOnly="True"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" MinRowHeight="26"
+                  HeadersVisibility="Column" MinRowHeight="26"
                   MouseDoubleClick="Sonuc_CiftTik"
                   AutomationProperties.AutomationId="GridIdIzi">
             <DataGrid.Columns>

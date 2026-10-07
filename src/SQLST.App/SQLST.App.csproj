@@ -25,7 +25,7 @@
     <!-- ⚠ installer/sqlst.iss icindeki Surum ile AYNI olmali (v22-S4: 0.11.4'te kalmisti,
          kurulum 0.24.0 diyordu; "Hakkinda" ve dosya ozellikleri yanlis surum gosteriyordu).
          SurumSenkronTests bu esitligi kilitler. -->
-    <Version>0.27.0</Version>
+    <Version>0.28.0</Version>
     <Product>SQLST</Product>
   </PropertyGroup>
 

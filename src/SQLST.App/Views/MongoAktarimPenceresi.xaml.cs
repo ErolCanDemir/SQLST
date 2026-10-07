@@ -212,8 +212,9 @@ public partial class MongoAktarimPenceresi : Window
                 : $"{eslesmeler.Count} alan eşlendi — örneklemde görünmeyen alanlar AKTARILMAZ.") + "\n"
             + "Yazma: " + (ekleGuncelle ? "Ekle/Güncelle (_id'ye göre)." : "Yalnız ekle.")
             + (OnceTemizle.IsChecked == true ? "\n\n⚠ ÖNCE HEDEF KOLEKSİYON TEMİZLENECEK (deleteMany)!" : "");
-        if (MessageBox.Show(this, ozet + "\n\nBaşlatılsın mı?", "SQLST — Paket Aktarım (MongoDB)",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        bool temizle = OnceTemizle.IsChecked == true;
+        if (!Iletisim.Sor(this, "SQLST — Paket Aktarım (MongoDB)", "Aktarım başlatılsın mı?", ozet,
+                temizle ? "Temizle ve aktar" : "▶ Aktarımı başlat", temizle ? IletisimTuru.Tehlike : IletisimTuru.Soru))
             return;
 
         var istek = new MongoAktarimIstegi(

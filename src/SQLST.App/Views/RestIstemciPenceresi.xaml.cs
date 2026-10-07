@@ -964,8 +964,8 @@ public partial class RestIstemciPenceresi : Window
     {
         if (_depo is null || KayitliListe.SelectedItem is not ListeOge { Model: RestKayitliIstek k })
             return;
-        if (MessageBox.Show($"“{k.Ad}” kayıtlı isteği silinsin mi?", "SQLST",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+        if (!Iletisim.Sor(this, "SQLST — REST İstemcisi", "Kayıtlı istek silinsin mi?",
+                $"“{k.Ad}” kayıtlı isteği silinecek.", "🗑 Sil", IletisimTuru.Tehlike))
             return;
         await _depo.IstekSilAsync(k.Ad);
         await KayitliYukleAsync();

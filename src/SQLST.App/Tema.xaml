@@ -20,8 +20,10 @@
          StaticResourceHolder istisnası (ana pencere açılmıyordu). Ayrı sözlük, çakışma yok. -->
     <BooleanToVisibilityConverter x:Key="BoolGorunurluk" />
 
-    <!-- Tipografi: UI Segoe UI Variable (Win11; yoksa Segoe UI), veri/kod tek aralıklı (03 §5) -->
-    <FontFamily x:Key="ArayuzYazisi">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <!-- Tipografi (v23-S19, kullanıcı 2026-10-06: "mockup'ların yazı tipini uygulayalım"): arayüz ve
+         IZGARALAR klasik Segoe UI — onaylı mockup'larla (sql-agent, sihirbaz, REST) birebir. Eskiden
+         Segoe UI Variable Text + ızgarada kod yazısıydı. Kod editörleri tek aralıklı kalır (KodYazisi). -->
+    <FontFamily x:Key="ArayuzYazisi">Segoe UI</FontFamily>
     <FontFamily x:Key="KodYazisi">Cascadia Mono, Consolas, Courier New</FontFamily>
     <sys:Double x:Key="YaziKucuk">11</sys:Double>
     <sys:Double x:Key="YaziGovde">12.5</sys:Double>
@@ -296,6 +298,8 @@
     <StreamGeometry x:Key="Ikon.Karsilastir">M4,9 H17 M14,6 L17,9 L14,12 M20,15 H7 M10,12 L7,15 L10,18</StreamGeometry>
     <StreamGeometry x:Key="Ikon.Parcalar">M9,7 L4,12 L9,17 M15,7 L20,12 L15,17</StreamGeometry>
     <StreamGeometry x:Key="Ikon.Log">M4,20 H20 M7,20 V13 M12,20 V8 M17,20 V16</StreamGeometry>
+    <!-- ⏱ SQL Agent (v23-S16): kronometre — zamanlanmış işler -->
+    <StreamGeometry x:Key="Ikon.Saat">M5,13.5 A7,7 0 1 1 19,13.5 A7,7 0 1 1 5,13.5 Z M12,13.5 V9.5 M10,3.5 H14 M12,3.5 V6.5 M18,6 L19.5,7.5</StreamGeometry>
     <StreamGeometry x:Key="Ikon.Kisayol">M3,7 H21 V17 H3 Z M6,10.5 H7 M9.5,10.5 H10.5 M13,10.5 H14 M16.5,10.5 H17.5 M8,14 H16</StreamGeometry>
     <StreamGeometry x:Key="Ikon.Tema">M20,13.5 A7.5,7.5 0 1 1 10.5,4 A6,6 0 0 0 20,13.5 Z</StreamGeometry>
     <StreamGeometry x:Key="Ikon.Cikis">M14,5 H18 A1,1 0 0 1 19,6 V18 A1,1 0 0 1 18,19 H14 M4,12 H15 M11,8 L15,12 L11,16</StreamGeometry>
@@ -893,9 +897,108 @@
         <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
     </Style>
 
-    <!-- Sonuç grid'i: tek aralıklı yazı, sakin başlıklar, ince satırlar -->
+    <!-- ══ MOCKUP DİLİ (v23-S21 — kullanıcı 2026-10-06: "mockup'ın kalan parçası kalmasın, bitirelim";
+         referans docs/mockup/sql-agent.html). Belge sekmesi · sonuç rozeti · sayaçlı süzgeç çipi.
+         Renkler paletten; Antrasit klasik düzende kendi şablonları sürer. -->
+
+    <!-- Belge sekmesi (yalnız ANA sorgu sekmeleri): VS gibi — şerit zemininde, sağda ince ayraç;
+         seçili sekme pencere zemininde + üstte 2px vurgu çizgisi. Alt sekmeler (Sonuçlar/Mesajlar…)
+         altı çizgili kalır. BasedOn: klasik (Antrasit) tetiklemesi miras alınır. -->
+    <Style x:Key="BelgeSekmesi" TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="k" Background="Transparent" BorderThickness="0,2,0,0"
+                            BorderBrush="Transparent" Margin="0,0,0,-1">
+                        <Border x:Name="ayrac" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource KenarFircasi}" Margin="0,0,-1,0">
+                            <ContentPresenter x:Name="basl" ContentSource="Header" Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center" TextElement.FontWeight="Normal" />
+                        </Border>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource ZeminAcikFircasi}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="k" Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
+                            <Setter TargetName="k" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                            <Setter TargetName="basl" Property="TextElement.FontWeight" Value="SemiBold" />
+                            <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <conv:RozetTuruConverter x:Key="RozetTuru" />
+
+    <!-- Sonuç rozeti: Tag = ok · hata · calis · uyari · iptal · gri (metinden: RozetTuru dönüştürücüsü). -->
+    <Style x:Key="SonucRozeti" TargetType="Border">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,1" />
+        <Setter Property="Margin" Value="2,1" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Background" Value="{DynamicResource PanelZeminFircasi}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+        <Setter Property="TextElement.FontSize" Value="11.5" />
+        <Style.Triggers>
+            <Trigger Property="Tag" Value="ok">
+                <Setter Property="Background" Value="{DynamicResource FarkEklenenZeminFircasi}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource BasariFircasi}" />
+            </Trigger>
+            <Trigger Property="Tag" Value="hata">
+                <Setter Property="Background" Value="{DynamicResource FarkSilinenZeminFircasi}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource TehlikeFircasi}" />
+            </Trigger>
+            <Trigger Property="Tag" Value="calis">
+                <Setter Property="Background" Value="{DynamicResource BilgiZeminFircasi}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource BilgiMetinFircasi}" />
+            </Trigger>
+            <Trigger Property="Tag" Value="iptal">
+                <Setter Property="Background" Value="{DynamicResource UyariZeminFircasi}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource UyariMetinFircasi}" />
+            </Trigger>
+            <Trigger Property="Tag" Value="uyari">
+                <Setter Property="Background" Value="{DynamicResource UyariZeminFircasi}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource UyariMetinFircasi}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Kapsül süzgeç çipi (sayaçlı): RadioButton ya da ToggleButton — seçiliyken vurgu zemini. -->
+    <Style x:Key="SuzgecCipi" TargetType="ToggleButton">
+        <Setter Property="Margin" Value="0,0,6,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Kap" CornerRadius="11" Padding="11,3" BorderThickness="1"
+                            BorderBrush="{DynamicResource KenarFircasi}" Background="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Kap" Property="Background" Value="{DynamicResource VurguFircasi}" />
+                            <Setter TargetName="Kap" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Kap" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Sonuç grid'i: arayüz yazısı (v23-S19 — mockup'lardaki gibi Segoe UI), sakin başlıklar, ince satırlar -->
     <Style TargetType="DataGrid">
-        <Setter Property="FontFamily" Value="{StaticResource KodYazisi}" />
+        <Setter Property="FontFamily" Value="{StaticResource ArayuzYazisi}" />
         <Setter Property="FontSize" Value="{StaticResource YaziGovde}" />
         <!-- Veri hücreleri asla kalın olmasın: seçili sekmenin SemiBold'u içeriğe miras kalmasın -->
         <Setter Property="FontWeight" Value="Normal" />
@@ -924,9 +1027,8 @@
         <Setter Property="Background" Value="{DynamicResource PencereZeminFircasi}" />
         <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
         <Style.Triggers>
-            <!-- v23-S14 klasik (B): grid yazısı Segoe UI (kod fontu değil), satırlar biraz sıkı. -->
+            <!-- v23-S14 klasik (B): satırlar biraz sıkı (yazı artık tüm ailelerde Segoe UI). -->
             <DataTrigger Binding="{Binding Path=(app:TemaDurumu.Klasik)}" Value="True">
-                <Setter Property="FontFamily" Value="{StaticResource ArayuzYazisi}" />
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="RowHeight" Value="22" />
             </DataTrigger>

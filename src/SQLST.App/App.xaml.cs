@@ -59,12 +59,10 @@ public partial class App : System.Windows.Application
         if (UygulamaVeriYolu.GocHatasi is { } gocHatasi)
         {
             Log.Error("Veri klasörü göçü başarısız: {Hata}", gocHatasi);
-            MessageBox.Show(
-                "Eski sürümün veri klasörü (%APPDATA%\\MiniSSMS) yeni adına "
-                + "(%APPDATA%\\SQLST) taşınamadı:\n\n" + gocHatasi
-                + "\n\nProfilleriniz ve geçmişiniz SİLİNMEDİ — eski klasörde duruyor. "
-                + "Uygulama şimdilik boş verilerle açılacak.",
-                "SQLST — veri taşınamadı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Iletisim.Uyari(null, "SQLST — veri taşınamadı", "Eski veri klasörü taşınamadı",
+                "Eski sürümün veri klasörü (%APPDATA%\\MiniSSMS) yeni adına (%APPDATA%\\SQLST) taşınamadı:\n\n"
+                + gocHatasi + "\n\nProfilleriniz ve geçmişiniz SİLİNMEDİ — eski klasörde duruyor. "
+                + "Uygulama şimdilik boş verilerle açılacak.");
         }
 
         // FOG-7: beklenmeyen hata uygulamayı düşürmez — logla, kibarca bildir.
@@ -341,8 +339,7 @@ public partial class App : System.Windows.Application
         _gosterilenHatalar.Add(ozet);
         _sonHataAnUtc = DateTime.UtcNow;
 
-        MessageBox.Show(
-            $"Beklenmeyen bir hata oluştu; ayrıntı log dosyasında.\n\n{ozet}",
-            "SQLST", MessageBoxButton.OK, MessageBoxImage.Error);
+        Iletisim.Hata(null, "SQLST", "Beklenmeyen bir hata oluştu",
+            "Uygulama çalışmaya devam ediyor; ayrıntı log dosyasında.", $"{e.Exception.GetType().Name}: {ozet}");
     }
 }

@@ -118,9 +118,8 @@ public partial class FarkOnizlemePenceresi : Window
             FarkDmlUretici.Uret(_lehce, _sema, _tablo, _anahtarlar, _fark, silme, yazilamaz, identityInsert);
         if (komutlar.Count == 0)
         {
-            MessageBox.Show(this,
-                "Uygulanacak fark yok — tablo Excel ile zaten aynı (silme kapalıysa yalnız silinecek satır olabilir).",
-                "SQLST — Tam eşitleme", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — Tam eşitleme", "Uygulanacak fark yok",
+                "Tablo Excel ile zaten aynı (silme kapalıysa yalnız silinecek satır olabilir).");
             return;
         }
 

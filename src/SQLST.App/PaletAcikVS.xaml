@@ -83,8 +83,8 @@
     <SolidColorBrush x:Key="RayIkonFircasi" Color="#DDEBF8" />
 
     <!-- v23-S14 GRID IZGARASI: bu aile DEĞİŞMEDİ (bkz. PaletAcik.xaml notu). -->
-    <x:Static x:Key="GridCizgiGorunurlugu" Member="DataGridGridLinesVisibility.Horizontal" />
-    <SolidColorBrush x:Key="GridCizgiFircasi" Color="#CCCEDB" />
-    <Thickness x:Key="GridBaslikKenarKalinligi">0,0,0,1</Thickness>
+    <x:Static x:Key="GridCizgiGorunurlugu" Member="DataGridGridLinesVisibility.All" />
+    <SolidColorBrush x:Key="GridCizgiFircasi" Color="#E2E2E7" />
+    <Thickness x:Key="GridBaslikKenarKalinligi">0,0,1,1</Thickness>
     <SolidColorBrush x:Key="GridAlternatifSatirFircasi" Color="#F7F7F9" />
 </ResourceDictionary>

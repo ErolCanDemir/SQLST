@@ -50,10 +50,8 @@ public partial class BaglantiPenceresi : Window
     {
         if (ListProfiller.SelectedItem is not ConnectionProfile secili)
             return;
-        MessageBoxResult onay = MessageBox.Show(
-            $"'{secili.Ad}' profili silinsin mi?", "SQLST",
-            MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (onay == MessageBoxResult.Yes)
+        if (Iletisim.Sor(this, "SQLST — Bağlantılar", "Bağlantı profili silinsin mi?",
+                $"'{secili.Ad}' bağlantı profili silinecek.", "🗑 Sil", IletisimTuru.Tehlike))
             await _vm.SilAsync(secili);
     }
 

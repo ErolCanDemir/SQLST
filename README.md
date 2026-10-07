@@ -1,6 +1,6 @@
 # SQLST
 
-### ⬇ [Download SQLST 0.27.0 for Windows (installer, .exe)](https://github.com/ErolCanDemir/SQLST/releases/download/v0.27.0/SQLST-Kurulum-0.27.0.exe) · [User guide (PDF)](https://github.com/ErolCanDemir/SQLST/releases/download/v0.27.0/SQLST-Kullanim-Kilavuzu-0.27.0.pdf) · [All releases](https://github.com/ErolCanDemir/SQLST/releases)
+### ⬇ [Download SQLST 0.28.0 for Windows (installer, .exe)](https://github.com/ErolCanDemir/SQLST/releases/download/v0.28.0/SQLST-Kurulum-0.28.0.exe) · [User guide (PDF)](https://github.com/ErolCanDemir/SQLST/releases/download/v0.28.0/SQLST-Kullanim-Kilavuzu-0.28.0.pdf) · [All releases](https://github.com/ErolCanDemir/SQLST/releases)
 
 **SQLST** is a lightweight, fast and safety-first database query and management tool for Windows that works with
 **SQL Server, PostgreSQL, MySQL/MariaDB, Oracle and MongoDB** from a single interface. It is built for the
@@ -25,7 +25,7 @@ Get the latest installer from **[Releases](https://github.com/ErolCanDemir/SQLST
 
 ### 🏠 With the local AI assistant
 
-Prefer **[SQLST-AI-Kurulum-0.27.0.exe](https://github.com/ErolCanDemir/SQLST/releases/download/v0.27.0/SQLST-AI-Kurulum-0.27.0.exe)**
+Prefer **[SQLST-AI-Kurulum-0.28.0.exe](https://github.com/ErolCanDemir/SQLST/releases/download/v0.28.0/SQLST-AI-Kurulum-0.28.0.exe)**
 (~1.6 GB) if you also want the offline AI assistant. It installs SQLST together with [Ollama](https://ollama.com) and,
 during setup, downloads the **Qwen2.5-Coder 7B** model (~4.7 GB, Apache-2.0) from the official Ollama library — so an
 internet connection is needed once. After that the assistant runs fully on your machine; no API key, nothing leaves

@@ -165,7 +165,7 @@
                                        Foreground="{DynamicResource SolukMetinFircasi}"
                                        Text="URL ile ÇİFT YÖNLÜ senkron: URL'ye ?anahtar=değer yazdıkça bu tablo dolar; tabloda değiştirdikçe URL güncellenir. ✓ kaldırılan satır URL'den düşer ama silinmez. {{Ad}} yer tutucuları 🔤 Değişkenler'den dolar." />
                             <DataGrid x:Name="ParamGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
-                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                      HeadersVisibility="Column"
                                       CellEditEnding="Param_HucreBitti"
                                       AutomationProperties.AutomationId="RestParamGrid">
                                 <DataGrid.Columns>
@@ -208,7 +208,7 @@
                     </TabItem>
                     <TabItem Header="Başlıklar">
                         <DataGrid x:Name="BaslikGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
-                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" Margin="0,6,0,0"
+                                  HeadersVisibility="Column" Margin="0,6,0,0"
                                   AutomationProperties.AutomationId="RestBaslikGrid">
                             <DataGrid.Columns>
                                 <DataGridCheckBoxColumn Header="✓" Binding="{Binding Etkin}" Width="34" />
@@ -230,7 +230,7 @@
                                            Foreground="{DynamicResource SolukMetinFircasi}"
                                            Text="Anahtar/değer gir → JSON sağda canlı oluşur (sayı/true/false/null otomatik tiplenir). JSON'u elle düzeltirsen düz nesne olduğu sürece tablo da güncellenir." />
                                 <DataGrid x:Name="GovdeKvGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
-                                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          HeadersVisibility="Column"
                                           CellEditEnding="GovdeKv_HucreBitti"
                                           AutomationProperties.AutomationId="RestGovdeKvGrid">
                                     <DataGrid.Columns>
@@ -258,7 +258,7 @@
                                            Text="URL/gövde/başlık/param/kimlikte {{Ad}} olarak kullanılır. SQL dolu satır ilk hücreden çözülür (🔄). Ortam kümeleri sol alttaki Ortam'dan kaydedilir/seçilir." />
                             </DockPanel>
                             <DataGrid x:Name="DegiskenGrid" AutoGenerateColumns="False" CanUserAddRows="True" MinRowHeight="28"
-                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                      HeadersVisibility="Column"
                                       AutomationProperties.AutomationId="RestDegiskenGrid">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Ad" Binding="{Binding Ad}" Width="*"
@@ -331,7 +331,7 @@
                             <TabItem>
                                 <TabItem.Header><TextBlock x:Name="BaslikSekmeBaslik" Text="Başlıklar" /></TabItem.Header>
                                 <DataGrid x:Name="YanitBaslikGrid" AutoGenerateColumns="False" IsReadOnly="True"
-                                          CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          CanUserAddRows="False" HeadersVisibility="Column"
                                           AutomationProperties.AutomationId="RestYanitBaslikGrid">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Başlık" Binding="{Binding Anahtar}" Width="*" />
@@ -342,7 +342,7 @@
                             <TabItem>
                                 <TabItem.Header><TextBlock x:Name="CerezSekmeBaslik" Text="Çerezler" /></TabItem.Header>
                                 <DataGrid x:Name="CerezGrid" AutoGenerateColumns="False" IsReadOnly="True"
-                                          CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          CanUserAddRows="False" HeadersVisibility="Column"
                                           AutomationProperties.AutomationId="RestCerezGrid">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Ad" Binding="{Binding Anahtar}" Width="*" />

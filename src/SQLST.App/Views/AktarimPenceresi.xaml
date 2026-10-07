@@ -160,7 +160,7 @@
 
         <!-- Eşleme gridi: her HEDEF kolon için kaynak seçimi (boş = aktarma) -->
         <DataGrid x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
                   AutomationProperties.AutomationId="AktarimEslemeGrid">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Hedef kolon" Binding="{Binding HedefGosterim}" IsReadOnly="True" Width="220" />

@@ -99,8 +99,7 @@ public partial class GeriAlPenceresi : Window
         (string? script, string? hata) = TersDmlUretici.Uret(_seciliTam);
         if (script is null)
         {
-            MessageBox.Show(this, hata, "Geri alma script'i üretilemedi",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            Iletisim.Uyari(this, "SQLST — Geri Al", "Geri alma script'i üretilemedi", hata ?? "");
             return;
         }
 
@@ -117,9 +116,8 @@ public partial class GeriAlPenceresi : Window
             Durum.Text = "Önce silinecek paketi seçin.";
             return;
         }
-        if (MessageBox.Show(this, $"'{secili.Fiil} · {secili.Tablo}' paketi silinsin mi? Bu işlem geri alınamaz.",
-                "Paketi sil", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No)
-            != MessageBoxResult.Yes)
+        if (!Iletisim.Sor(this, "SQLST — Geri Al", "Paket silinsin mi?",
+                $"{secili.Fiil} · {secili.Tablo} geri alma paketi silinecek. Bu işlem geri alınamaz.", "🗑 Sil", IletisimTuru.Tehlike))
             return;
 
         try

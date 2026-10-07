@@ -9,32 +9,6 @@
         <conv:DegerDoluysaGorunurConverter x:Key="DegerVarsaGorunur" />
         <conv:HucreMetniConverter x:Key="TekSatir" />
         <conv:SeviyeFircasiConverter x:Key="SeviyeFircasi" />
-
-        <!-- Seviye süzgeç çipi: seçiliyken vurgulu (ToggleButton) -->
-        <Style x:Key="SeviyeCipi" TargetType="ToggleButton">
-            <Setter Property="Padding" Value="12,3" />
-            <Setter Property="Margin" Value="0,0,6,0" />
-            <Setter Property="Foreground" Value="{DynamicResource MetinFircasi}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="Kap" CornerRadius="11" Padding="{TemplateBinding Padding}"
-                                Background="{DynamicResource PanelZeminFircasi}"
-                                BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Kap" Property="Background" Value="{DynamicResource VurguFircasi}" />
-                                <Setter TargetName="Kap" Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
 
     <DockPanel Margin="14">
@@ -82,11 +56,11 @@
         <DockPanel x:Name="SuzgecSatiri" DockPanel.Dock="Top" Margin="0,0,0,10" Visibility="Collapsed">
             <TextBlock Text="Seviye:" VerticalAlignment="Center" Margin="0,0,8,0"
                        Foreground="{DynamicResource SolukMetinFircasi}" />
-            <ToggleButton x:Name="CipHata" Content="● Hata" Style="{StaticResource SeviyeCipi}"
+            <ToggleButton x:Name="CipHata" Content="● Hata" Style="{StaticResource SuzgecCipi}"
                           Click="SeviyeCipi_Degisti" AutomationProperties.AutomationId="CipLogHata" />
-            <ToggleButton x:Name="CipUyari" Content="● Uyarı" Style="{StaticResource SeviyeCipi}"
+            <ToggleButton x:Name="CipUyari" Content="● Uyarı" Style="{StaticResource SuzgecCipi}"
                           Click="SeviyeCipi_Degisti" AutomationProperties.AutomationId="CipLogUyari" />
-            <ToggleButton x:Name="CipBilgi" Content="● Bilgi" Style="{StaticResource SeviyeCipi}"
+            <ToggleButton x:Name="CipBilgi" Content="● Bilgi" Style="{StaticResource SuzgecCipi}"
                           Click="SeviyeCipi_Degisti" AutomationProperties.AutomationId="CipLogBilgi" />
             <TextBlock Text="(hiçbiri seçili değilse tümü)" VerticalAlignment="Center" Margin="4,0,0,0"
                        FontSize="11" Foreground="{DynamicResource SolukMetinFircasi}" />
@@ -200,7 +174,7 @@
         </Grid>
 
         <DataGrid x:Name="Grid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" EnableRowVirtualization="True"
+                  HeadersVisibility="Column" EnableRowVirtualization="True"
                   MouseDoubleClick="Grid_MouseDoubleClick"
                   AutomationProperties.AutomationId="LogGrid">
             <DataGrid.Columns>

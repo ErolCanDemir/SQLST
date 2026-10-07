@@ -10,7 +10,7 @@
 ; 2026-07-27: "saçma sapan görünüyor"). derle.ps1 ve düzenleme araçları BOM'u korumalıdır.
 
 #define Uygulama "SQLST"
-#define Surum "0.27.0"
+#define Surum "0.28.0"
 #define Yayinci "LST"
 #define ExeAdi "SQLST.exe"
 
@@ -130,7 +130,7 @@ Type: files; Name: "{autodesktop}\MiniSSMS.lnk"
 ; import edilir (GGUF kuruluma gömülü değil). Sihirbaz StatusMsg ilerlemeyi gösterir.
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\ai\ai-kur.ps1"" -GgufDizin ""{src}"""; \
-  StatusMsg: "Yerel yapay zeka kuruluyor (Ollama + model, birkaç dakika sürebilir)…"; \
+  StatusMsg: "Yerel yapay zeka kuruluyor (Ollama + model; model yanında yoksa internetten indirilir, ~4,7 GB — birkaç dakika ile yarım saat sürebilir)…"; \
   Components: ai; Flags: runhidden waituntilterminated
 #endif
 Filename: "{app}\{#ExeAdi}"; Description: "{#Uygulama} uygulamasını başlat"; Flags: nowait postinstall skipifsilent
@@ -138,9 +138,9 @@ Filename: "{app}\{#ExeAdi}"; Description: "{#Uygulama} uygulamasını başlat"; 
 [UninstallDelete]
 ; tek dosya ayıklama önbelleği kullanıcı profilinde kalabilir — kaldırırken temizlenmez (başka sürümler kullanabilir)
 
-; 🏠 AI kurulumunda (AiVar) kullanıcı-dostu koruma: model .gguf, kurulumun YANINDA olmalı (2 dosya
-; birlikte taşınır). Kullanıcı exe'yi tek başına taşırsa AI sessizce kurulmazdı — bunu BAŞTAN, net
-; uyarıyla yakalıyoruz (kullanıcı isteği 2026-08-09: "kullanıcılar için zor olmasın").
+; 🏠 AI kurulumunda (AiVar) kullanıcı-dostu bilgi: model .gguf kurulumun YANINDAYSA internetsiz kurulur;
+; yoksa (GitHub'dan indirilen tek exe — v23-S15) internetten indirileceği BAŞTAN söylenir
+; (kullanıcı isteği 2026-08-09: "kullanıcılar için zor olmasın").
 #ifdef AiVar
 [Code]
 function InitializeSetup(): Boolean;
@@ -157,15 +157,20 @@ begin
       FindClose(BulRec);
     end;
   end;
+  // v23-S15 (GitHub yayını, 5 Eki 2026): model dosyası yanında YOKSA kurulum artık durmaz — ai-kur.ps1
+  // modeli internetten (ollama pull) indirir. GitHub Releases dosya başına 2 GB kabul eder; 4,36 GB'lık
+  // GGUF oraya konamadığı için AI kurulumu tek exe olarak dağıtılır. Kullanıcı yine BİLGİLENDİRİLİR
+  // (indirme büyük ve internet ister). SuppressibleMsgBox: /SUPPRESSMSGBOXES'lı sessiz kurulumu
+  // bloklamaz (varsayılan IDOK — devam).
   if GgufVar then
     Result := True
   else
-    Result := (MsgBox(
-      'Yerel yapay zeka model dosyası (.gguf) kurulumun yanında bulunamadı.' + #13#10 +
-      'Kurulum dosyası (.exe) ile model dosyası (.gguf) AYNI KLASÖRDE olmalı — iki dosya birlikte taşınır.' + #13#10#13#10 +
-      'Devam ederseniz uygulama kurulur ama YEREL YAPAY ZEKA kurulmaz.' + #13#10 +
-      'İptal edip iki dosyayı aynı klasöre koymanız önerilir.' + #13#10#13#10 +
-      'Yine de devam edilsin mi?',
-      mbConfirmation, MB_YESNO) = IDYES);
+    Result := (SuppressibleMsgBox(
+      'Yerel yapay zeka model dosyası (.gguf) kurulumun yanında yok.' + #13#10#13#10 +
+      'Model kurulum sırasında İNTERNETTEN indirilecek (yaklaşık 4,7 GB — bağlantınıza göre birkaç dakika ile yarım saat sürebilir).' + #13#10 +
+      'İnternet yoksa uygulama yine kurulur; yapay zeka sekmesi sonradan nasıl kurulacağını gösterir.' + #13#10#13#10 +
+      '(İnternetsiz kurulum için model dosyasını kurulum dosyasıyla AYNI KLASÖRE koyun.)' + #13#10#13#10 +
+      'Devam edilsin mi?',
+      mbInformation, MB_OKCANCEL, IDOK) = IDOK);
 end;
 #endif

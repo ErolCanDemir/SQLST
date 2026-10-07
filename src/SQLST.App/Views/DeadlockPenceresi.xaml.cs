@@ -213,8 +213,7 @@ public partial class DeadlockPenceresi : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(this, $"Kaydedilemedi: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            Iletisim.Hata(this, "SQLST — Kilitlenme", "Dosya kaydedilemedi", ex);
         }
     }
 }

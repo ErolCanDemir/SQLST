@@ -37,7 +37,7 @@
                    Text="Renkli satır = dikkat (yalnız API / yalnız DB / farklı). Değer karşılaştırması metin bazlı — ondalık/tarih biçim farkı yanlış 'farklı' verebilir." />
 
         <DataGrid x:Name="SonucGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Single"
+                  HeadersVisibility="Column" SelectionMode="Single"
                   AutomationProperties.AutomationId="GridKarsilastir">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
@@ -50,7 +50,15 @@
             </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Anahtar" Binding="{Binding Anahtar}" Width="1.4*" />
-                <DataGridTextColumn Header="Durum" Binding="{Binding Durum}" Width="Auto" />
+                <DataGridTemplateColumn Header="Durum" Width="Auto" SortMemberPath="Durum">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource SonucRozeti}" Tag="{Binding Durum, Converter={StaticResource RozetTuru}}">
+                                <TextBlock Text="{Binding Durum}" />
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Farklı kolonlar" Binding="{Binding Farklar}" Width="3*" />
             </DataGrid.Columns>
         </DataGrid>

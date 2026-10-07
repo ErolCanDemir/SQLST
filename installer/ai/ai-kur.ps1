@@ -3,9 +3,10 @@
 # ANSI okunup parse hatasi verir (CLAUDE.md tuzagi) -> bu betik SAF ASCII yazilir.
 #
 # Gorev: (1) Ollama kurulu degilse gomulu OllamaSetup.exe'yi SESSIZ kur, (2) sunucunun ayaga
-# kalkmasini bekle, (3) SIDECAR GGUF'tan (kurulum exe'sinin yanindaki -GgufDizin) modeli
-# 'ollama create' ile kaydet. Internet GEREKMEZ. GGUF kuruluma GOMULU DEGIL: Windows'ta calisabilir
-# tek .exe 4 GB'i gecemez, model tek basina 4.36 GB -> exe'nin YANINDA ayri dosya (v21-S4, 2-dosya).
+# kalkmasini bekle, (3) modeli kaydet: SIDECAR GGUF varsa (kurulum exe'sinin yanindaki -GgufDizin)
+# ondan - internet GEREKMEZ (kapali ag, USB dagitimi); YOKSA (v23-S15, GitHub'dan indirilen tek exe)
+# 'ollama pull' ile internetten. GGUF kuruluma GOMULU DEGIL: Windows'ta calisabilir tek .exe 4 GB'i
+# gecemez, model tek basina 4.36 GB -> exe'nin YANINDA ayri dosya (v21-S4, 2-dosya).
 # Her adim kendi hatasini yutup IZ birakir (ai-kur.log) - kurulum AI yuzunden COKMEZ; AI kurulamazsa
 # SQLST yine acilir, asistan "Ollama'ya ulasilamadi" yonlendirmesini gosterir (v21-S1).
 param(
@@ -81,24 +82,45 @@ try {
             if ($g) { $gguf = $g; break }
         }
     }
-    if (-not $gguf) { Yaz "HATA: GGUF bulunamadi. Kurulum exe'sinin YANINDA *.gguf olmali. Aranan: '$GgufDizin' ve '$AiDizin'."; exit 0 }
-    Yaz "GGUF (sidecar): $($gguf.FullName)"
-    # Modelfile'in FROM'unu sidecar gguf'un MUTLAK yoluna cevir (gguf {app}\ai'de DEGIL, kurulumun
-    # yaninda; ollama'nin goreli-yol belirsizligini kaldirir). Diger satirlar (PARAMETER/SYSTEM -
-    # Turkce icerir) UTF-8 KORUNARAK aynen tasinir (.NET IO; Get/Set-Content PS5.1'de mojibake yapar -
-    # CLAUDE.md). Ileri-slash: Windows ollama kabul eder, ters-slash kacis riski yok.
+    # v23-S15 (GitHub yayini, kullanici karari 5 Eki 2026): GGUF YANINDA YOKSA internetten indir.
+    # GitHub Releases dosya basina 2 GB kabul eder; 4.36 GB'lik GGUF oraya konamaz -> AI kurulum exe'si
+    # tek basina dagitilir, model resmi Ollama kutuphanesinden 'ollama pull' ile gelir. Kutuphanedeki
+    # qwen2.5-coder:7b varsayilan nicemlemesi Q4_K_M = sidecar GGUF ile AYNI agirliklar. Internet yoksa
+    # iz birakip cikar (SQLST yine acilir; asistan yonlendirmesi devrede). Kapali ag: sidecar yolu aynen.
+    if (-not $gguf) {
+        Yaz "GGUF yaninda yok -> model internetten indiriliyor: ollama pull $Model (~4.7 GB, birkac dakika - yarim saat)..."
+        # Ilerleme animasyonu (ANSI) gunluge YAZILMAZ - tek satira 80+ KB birikiyordu (gercek test
+        # 5 Eki 2026); yalniz hata/sonuc satirlari kalir.
+        & $ollama pull $Model 2>&1 | ForEach-Object { "$_" } |
+            Where-Object { $_ -match '^\s*(Error|success)' } | ForEach-Object { Yaz $_.Trim() }
+        if (-not (& $ollama list 2>$null | Select-String -SimpleMatch $Model)) {
+            Yaz "HATA: model indirilemedi (internet/proxy?). SQLST kuruldu; AI sekmesi yonlendirme gosterir."
+            exit 0
+        }
+        Yaz "Model indirildi: $Model"
+    }
+    # Modelfile'in FROM satirini cevir: sidecar varsa GGUF'un MUTLAK yolu (gguf {app}\ai'de DEGIL,
+    # kurulumun yaninda; ollama'nin goreli-yol belirsizligini kaldirir), yoksa indirilen kutuphane modeli
+    # (FROM <model> -> SQLST ayarlari - sicaklik/baglam/SYSTEM - ayni ada islenir; iki yolda da sonuc ayni
+    # ayarli model). Diger satirlar (PARAMETER/SYSTEM - Turkce icerir) UTF-8 KORUNARAK aynen tasinir
+    # (.NET IO; Get/Set-Content PS5.1'de mojibake yapar - CLAUDE.md). Ileri-slash: Windows ollama kabul eder.
     $utf8 = New-Object Text.UTF8Encoding($false)
     $mfKaynak = Join-Path $AiDizin "Modelfile"
     $mfTemp = Join-Path $env:TEMP ("sqlst-modelfile-" + [Guid]::NewGuid().ToString("N") + ".txt")
     $satirlar = ([IO.File]::ReadAllText($mfKaynak, $utf8)) -split "`r?`n"
-    $ggufYol = ($gguf.FullName -replace '\\','/')
+    if ($gguf) {
+        Yaz "GGUF (sidecar): $($gguf.FullName)"
+        $kaynak = 'FROM "' + ($gguf.FullName -replace '\\','/') + '"'
+    } else {
+        $kaynak = "FROM $Model"
+    }
     $yeni = New-Object System.Collections.Generic.List[string]
     foreach ($s in $satirlar) {
-        if ($s -match '^\s*FROM\s') { $yeni.Add('FROM "' + $ggufYol + '"') }
+        if ($s -match '^\s*FROM\s') { $yeni.Add($kaynak) }
         else { $yeni.Add($s) }
     }
     [IO.File]::WriteAllText($mfTemp, ($yeni -join "`r`n"), $utf8)
-    Yaz "Model olusturuluyor ($($gguf.Name)) -> $Model ..."
+    Yaz "Model ayarlariyla kaydediliyor ($kaynak) -> $Model ..."
     & $ollama create $Model -f $mfTemp 2>&1 | ForEach-Object { Yaz $_ }
     Remove-Item $mfTemp -Force -ErrorAction SilentlyContinue
     Yaz "AI kurulumu tamamlandi."

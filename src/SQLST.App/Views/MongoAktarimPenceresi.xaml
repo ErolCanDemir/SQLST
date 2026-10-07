@@ -147,7 +147,7 @@
              Hedef alan YAZILABİLİR combo: aday = hedef koleksiyonun envanteri, boş = aktarma.
              Hiç dokunulmazsa belge OLDUĞU GİBİ gider (örneklem dışı alanlar da — güvenli varsayılan). -->
         <DataGrid x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
                   AutomationProperties.AutomationId="MakEslemeGrid">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Kaynak alan" Binding="{Binding KaynakAlan}" IsReadOnly="True" Width="220" />

@@ -477,8 +477,9 @@ public partial class DosyaImportPenceresi : Window
                 + $"{eslesmeler.Count} kolon · yazma: "
                 + (ekleGuncelle ? $"Ekle/Güncelle (anahtar: {string.Join(", ", anahtarlar)})" : "Yalnız ekle") + "."
                 + (OnceTemizle.IsChecked == true ? "\n\n⚠ ÖNCE HEDEF TABLO TEMİZLENECEK (DELETE)!" : "");
-            if (MessageBox.Show(this, ozet + "\n\nBaşlatılsın mı?", "SQLST — İçe Aktar",
-                    MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+            bool temizle = OnceTemizle.IsChecked == true;
+            if (!Iletisim.Sor(this, "SQLST — İçe Aktar", "İçe aktarma başlatılsın mı?", ozet,
+                    temizle ? "Temizle ve aktar" : "▶ Aktarımı başlat", temizle ? IletisimTuru.Tehlike : IletisimTuru.Soru))
                 return;
         }
 
@@ -634,12 +635,11 @@ public partial class DosyaImportPenceresi : Window
 
             // Excel'de yinelenen anahtar → çift INSERT (PK ihlali) / çift UPDATE; önceden uyar (kod inceleme).
             int cift = Application.ExcelFarkKarsilastirici.YinelenenAnahtarSayisi(excel, anahtarlar);
-            if (cift > 0 && MessageBox.Show(this,
-                    $"Excel'de {cift} satır YİNELENEN anahtara sahip (aynı {string.Join("+", anahtarlar)}).\n\n"
-                    + "Tam eşitlemede bu, yeni satırlarda çift INSERT (anahtar ihlali → tüm işlem geri alınır) "
-                    + "ya da aynı satıra çift UPDATE demektir. Yine de devam edilsin mi?",
-                    "SQLST — Yinelenen anahtar", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
-                != MessageBoxResult.Yes)
+            if (cift > 0 && !Iletisim.Sor(this, "SQLST — Yinelenen anahtar",
+                    $"Excel'de {cift} satır yinelenen anahtara sahip",
+                    $"Aynı {string.Join("+", anahtarlar)} birden çok satırda. Tam eşitlemede bu, yeni satırlarda çift "
+                    + "INSERT (anahtar ihlali → tüm işlem geri alınır) ya da aynı satıra çift UPDATE demektir.",
+                    "Yine de devam et", IletisimTuru.Tehlike))
             {
                 Durum.Text = "Tam eşitleme iptal — Excel'de yinelenen anahtarlar var.";
                 return;

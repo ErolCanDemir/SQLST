@@ -88,15 +88,23 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         vm.GeriAlDeposu = geriAlDeposu;
         // Uzun sorgu bildirimi yalnız kullanıcı başka yerdeyken çıkar (V2-S2).
         vm.PencereAktifMi = () => IsActive;
-        // WHERE'siz DML onayı (FG-6.2): VM sorar, görünüm MessageBox açar.
-        vm.YazmaOnayiIste = mesaj => MessageBox.Show(this, mesaj, "SQLST — WHERE'siz yazma",
-            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        // WHERE'siz DML onayı (FG-6.2): VM sorar, görünüm iletişim kutusu açar (tehlikeli — odak Vazgeç'te).
+        vm.YazmaOnayiIste = mesaj => Iletisim.Sor(this, "SQLST — WHERE'siz yazma", "WHERE'siz yazma çalıştırılsın mı?",
+            mesaj, "Yine de çalıştır", IletisimTuru.Tehlike);
         // Edit modu "Show Script" (V2-S5): üretilen DML önizlenir, onay pencereden gelir.
         vm.DuzenlemeOnayiIste = script =>
             new DmlOnizlemePenceresi(script) { Owner = this }.ShowDialog() == true;
+        // ⏱ SQL Agent (v23-S16): başlat/durdur/aç-kapat onayı.
+        vm.AgentOnayiIste = soru => Iletisim.Sor(this, "SQLST — SQL Agent", soru.Baslik, soru.Mesaj, soru.OnayMetni,
+            soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
+        // ⏱ SQL Agent S3 (v23-S18): job oluşturma/düzenleme sihirbazı penceresi.
+        vm.AgentSihirbaziGoster = sihirbaz => new AgentSihirbazPenceresi(sihirbaz) { Owner = this }.ShowDialog();
+        // 🔎 FTS S4 (v23-S17): doldurma / değişiklik izleme / katalog işlemleri onayı.
+        vm.FtsOnayiIste = soru => Iletisim.Sor(this, "SQLST — Full-Text", soru.Baslik, soru.Mesaj, soru.OnayMetni,
+            soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
         // Script → Görsel (v6-S5): sorgu tam temsil edilemiyorsa ne atlanacağını gösterip sor.
-        vm.GorseleCevirmeOnayiIste = mesaj => MessageBox.Show(this, mesaj, "SQLST — Görsele çevir",
-            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        vm.GorseleCevirmeOnayiIste = mesaj => Iletisim.Sor(this, "SQLST — Görsele çevir",
+            "Sorgu görsele tam çevrilemiyor", mesaj, "Yine de çevir", IletisimTuru.Uyari);
         // Metin arama (V5-S2): sonuca çift tıklanınca tanım yeni sekmede EŞLEŞEN SATIRDA açılır.
         // Sekme henüz görsel ağaca girmediğinden SatiraGit o an bağlı değildir (SaglayicilariBagla
         // editörün Loaded'ında çalışır) → imleç taşıma Loaded sonrasına ertelenir.
@@ -160,9 +168,9 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             {
                 var bilgi = new FileInfo(yol);
                 if (bilgi.Length > 10 * 1024 * 1024
-                    && MessageBox.Show(this,
-                        $"{bilgi.Name} {bilgi.Length / (1024.0 * 1024):0.#} MB — büyük dosya editörü yavaşlatabilir.\n\nYine de açılsın mı?",
-                        "SQLST — Dosya Aç", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    && !Iletisim.Sor(this, "SQLST — Dosya Aç", "Büyük dosya",
+                        $"{bilgi.Name} {bilgi.Length / (1024.0 * 1024):0.#} MB — büyük dosya editörü yavaşlatabilir.",
+                        "Yine de aç", IletisimTuru.Uyari))
                     continue;
 
                 KodlanmisMetin metin = SqlDosyaKodlama.Coz(File.ReadAllBytes(yol));
@@ -170,8 +178,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                MessageBox.Show(this, $"Açılamadı: {yol}\n{ex.Message}", "SQLST",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Iletisim.Hata(this, "SQLST — Dosya Aç", $"{Path.GetFileName(yol)} açılamadı", ex);
             }
         }
     }
@@ -214,10 +221,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             case GorselSorguSekmesiViewModel gorsel:
                 if (gorsel.ScriptiUret() is not { } uretilen)
                     return; // üretilemedi (tuval boş / profil yok) — VM Bilgi'yi doldurdu
-                if (MessageBox.Show(this,
-                        "Görsel sorgu doğrudan kaydedilemez; üretilen SCRIPT (SQL) hali kaydedilecektir.\n\nDevam edilsin mi?",
-                        "SQLST — Görsel sorguyu kaydet", MessageBoxButton.YesNo, MessageBoxImage.Information,
-                        MessageBoxResult.Yes) != MessageBoxResult.Yes)
+                if (!Iletisim.Sor(this, "SQLST — Görsel sorguyu kaydet", "Script olarak kaydedilecek",
+                        "Görsel sorgu doğrudan kaydedilemez; üretilen SCRIPT (SQL) hali kaydedilir.", "💾 Kaydet"))
                     return;
                 sql = uretilen;
                 varsayilanAd = "gorsel-sorgu";
@@ -247,8 +252,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(this, $"Kaydedilemedi: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST", "Dosya kaydedilemedi", ex);
         }
     }
 
@@ -361,6 +365,21 @@ public partial class MainWindow : Window // partial: GeneratedRegex
     /// <summary>🔍 Profiler sekmesini açar (v23-S1 — yalnız MSSQL, ProfilerGorunur kapısı).</summary>
     /// <summary>🔎 FTS sekmesi (v23 S1+S2) — ray düğmesi; tek örnek VM'de.</summary>
     private void Fts_Click(object sender, RoutedEventArgs e) => _vm.FtsAc();
+
+    /// <summary>⏱ SQL Agent sekmesi (v23-S16) — ray düğmesi; tek örnek VM'de.</summary>
+    private void Agent_Click(object sender, RoutedEventArgs e) => _vm.AgentAc();
+
+    /// <summary>"▶ Başlat ▾" — baştan / seçili adımdan seçimi açılır menüyle.</summary>
+    private void AgentBaslatMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { ContextMenu: { } menu } dugme)
+        {
+            menu.DataContext = dugme.DataContext;
+            menu.PlacementTarget = dugme;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
 
     private void Profiler_Click(object sender, RoutedEventArgs e) => _vm.ProfilerAc();
 
@@ -742,8 +761,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(this, $"Rapor yazılamadı: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST", "Rapor yazılamadı", ex);
         }
     }
 
@@ -2326,8 +2344,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             || _vm.SeciliSekme is not SorguSekmesiViewModel sekme
             || _vm.AktifProfil is not { } profil)
         {
-            MessageBox.Show("Önce sonuçtan bir satır seçin.", "SQLST — Kayıt Haritası",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — Kayıt Haritası", "Önce bir satır seçin",
+                "Kayıt haritası, sonuçta seçili satırın ilişkili kayıtlarını gösterir.");
             return;
         }
 
@@ -2357,8 +2375,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             && (sema is null || n.Sema.Equals(sema, StringComparison.OrdinalIgnoreCase)));
         if (tablo is null || onbellek is null)
         {
-            MessageBox.Show("Kaynak tablo belirlenemedi — kayıt haritası TEK tablolu SELECT sonuçlarında çalışır.",
-                "SQLST — Kayıt Haritası", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — Kayıt Haritası", "Kaynak tablo belirlenemedi",
+                "Kayıt haritası TEK tablolu SELECT sonuçlarında çalışır.");
             return;
         }
 
@@ -2402,8 +2420,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
 
         if (hepsi.Count == 0)
         {
-            MessageBox.Show($"{tablo.TamAd} için şemada FK ilişkisi bulunamadı (ya da satırın FK kolonları NULL).",
-                "SQLST — Kayıt Haritası", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — Kayıt Haritası", "İlişki bulunamadı",
+                $"{tablo.TamAd} için şemada FK ilişkisi yok (ya da satırın FK kolonları NULL).");
             return;
         }
 
@@ -2458,10 +2476,9 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         _vm.Durum = "";
         if (dolular.Count == 0)
         {
-            MessageBox.Show(
-                $"{tablo.TamAd} için {hepsi.Count} ilişki var ama bu kayıt için HİÇBİRİ dolu değil.\n\n"
-                + "Yani bu satıra bağlı başka kayıt bulunmuyor.",
-                "SQLST — Kayıt Haritası", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — Kayıt Haritası", "Bağlı kayıt yok",
+                $"{tablo.TamAd} için {hepsi.Count} ilişki var ama bu kayıt için hiçbiri dolu değil — "
+                + "bu satıra bağlı başka kayıt bulunmuyor.");
             return;
         }
 
@@ -2510,8 +2527,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             && (sema is null || n.Sema.Equals(sema, StringComparison.OrdinalIgnoreCase)));
         if (tablo is null || onbellek is null)
         {
-            MessageBox.Show("Kaynak tablo belirlenemedi — tek tablolu SELECT sonuçlarında çalışır.",
-                "SQLST — DELETE script'i", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — DELETE script'i", "Kaynak tablo belirlenemedi",
+                "DELETE script'i tek tablolu SELECT sonuçlarında üretilebilir.");
             return;
         }
 
@@ -2519,8 +2536,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             tablo, satir, onbellek.YabanciAnahtarlar, _lehceSaglayici.Getir(profil.Motor));
         if (script is null)
         {
-            MessageBox.Show($"{tablo.TamAd}: PK yok ya da PK değeri sonuçta seçili değil — güvenli DELETE üretilemez.",
-                "SQLST — DELETE script'i", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Uyari(this, "SQLST — DELETE script'i", "Güvenli DELETE üretilemez",
+                $"{tablo.TamAd}: PK yok ya da PK değeri sonuçta seçili değil.");
             return;
         }
 
@@ -2653,9 +2670,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
 
         if (kayitlar.Count == 0)
         {
-            MessageBox.Show(this,
-                $"{nesne.TamAd} için tarihçe başlatılamadı — tanım okunamadı (şifreli olabilir).",
-                "SQLST — Tarihçe", MessageBoxButton.OK, MessageBoxImage.Information);
+            Iletisim.Bilgi(this, "SQLST — Tarihçe", "Tarihçe başlatılamadı",
+                $"{nesne.TamAd} tanımı okunamadı (şifreli olabilir).");
             return;
         }
         new TarihcePenceresi(nesne.TamAd, kayitlar,
@@ -3731,8 +3747,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            MessageBox.Show($"Excel yazılamadı: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST", "Excel yazılamadı", ex);
         }
     }
 
@@ -3757,8 +3772,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show($"JSON yazılamadı: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST", "JSON yazılamadı", ex);
         }
     }
 
@@ -3783,8 +3797,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show($"CSV yazılamadı: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST", "CSV yazılamadı", ex);
         }
     }
 
@@ -3822,8 +3835,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Data.Common.DbException)
         {
-            MessageBox.Show(this, $"Dışa aktarılamadı: {ex.Message}", "SQLST",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            Iletisim.Hata(this, "SQLST", "Dışa aktarılamadı", ex);
             _vm.Durum = "Dışa aktarma başarısız.";
         }
     }

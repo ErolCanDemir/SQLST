@@ -180,10 +180,8 @@ public partial class TabloOlusturPenceresi : Window
 
             if (sonuc.Basarili)
             {
-                MessageBox.Show(this,
-                    $"✔ '{tablo.Ad}' oluşturuldu ve {sonuc.Yazilan:N0} satır aktarıldı "
-                    + $"({sonuc.Sure.TotalSeconds:F1} sn).",
-                    "SQLST — Tabloya kaydet", MessageBoxButton.OK, MessageBoxImage.Information);
+                Iletisim.Bilgi(this, "SQLST — Tabloya kaydet", $"✔ '{tablo.Ad}' oluşturuldu",
+                    $"{sonuc.Yazilan:N0} satır aktarıldı ({sonuc.Sure.TotalSeconds:F1} sn).");
                 Close();
             }
             else

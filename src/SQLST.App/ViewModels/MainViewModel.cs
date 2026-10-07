@@ -549,11 +549,65 @@ public partial class MainViewModel : ObservableObject
             [.. VeritabaniAdlari], LogAnalizAktifVeritabani,
             db => OnbellekGetirAsync(db), FtsSorguAsync,
             (baslik, sql, db) => SekmeAc(baslik, sql, db),              // DDL — çalıştırmadan
-            (baslik, sql, db) => SekmeAcVeCalistir(baslik, sql, db));   // arama — koşarak
+            (baslik, sql, db) => SekmeAcVeCalistir(baslik, sql, db),    // arama — koşarak
+            mesaj => FtsOnayiIste?.Invoke(mesaj) ?? false,              // S4 yönetim işlemleri
+            _profil.SaltOkunur);
         Sekmeler.Add(sekme);
         SeciliSekme = sekme;
         _ = sekme.YenileAsync(); // açılışta keşif (FTS kurulu mu + envanter)
     }
+
+    /// <summary>FTS S4 yönetim onayı (doldurma/izleme/katalog) — MainWindow MessageBox ile bağlar.</summary>
+    public Func<OnayIstegi, bool>? FtsOnayiIste { get; set; }
+
+    /// <summary>⏱ SQL Agent sekmesini açar (v23-S16) — tek örnek; yalnız MSSQL (AgentGorunur).</summary>
+    public void AgentAc()
+    {
+        if (_profil is null || !MotorMssqlMu)
+            return;
+        if (Sekmeler.OfType<AgentSekmesiViewModel>().FirstOrDefault() is { } acik)
+        {
+            SeciliSekme = acik;
+            return;
+        }
+        var sekme = new AgentSekmesiViewModel(
+            AgentSorguAsync,
+            (baslik, sql, db) => SekmeAc(baslik, sql, db),   // script / adım komutu — ÇALIŞTIRMADAN
+            mesaj => AgentOnayiIste?.Invoke(mesaj) ?? false,
+            _profil.SaltOkunur)
+        {
+            SihirbazIste = istek => AgentSihirbaziGoster?.Invoke(AgentSihirbaziKur(istek)),
+        };
+        Sekmeler.Add(sekme);
+        SeciliSekme = sekme;
+        _ = sekme.YenileAsync();
+    }
+
+    /// <summary>Agent S3 sihirbaz penceresini gösteren görünüm köprüsü — MainWindow bağlar.</summary>
+    public Action<AgentSihirbazViewModel>? AgentSihirbaziGoster { get; set; }
+
+    /// <summary>Sihirbaz VM'i: veritabanı listesi, söz dizimi denetimi için db-hedefli köprü (FTS köprüsü:
+    /// 30 sn), açık sorgu sekmeleri ve script'i ÇALIŞTIRMADAN msdb sekmesinde açan geri çağrı.</summary>
+    public AgentSihirbazViewModel AgentSihirbaziKur(AgentSihirbazIstegi istek)
+        => new(istek, [.. VeritabaniAdlari], FtsSorguAsync,
+            () => [.. Sekmeler.OfType<SorguSekmesiViewModel>().Select(s => (s.Baslik, s.Belge.Text))],
+            (baslik, script) => SekmeAc(baslik, script, "msdb"));
+
+    /// <summary>Agent işlem onayı (başlat/durdur/aç-kapat) — MainWindow MessageBox ile bağlar.</summary>
+    public Func<OnayIstegi, bool>? AgentOnayiIste { get; set; }
+
+    /// <summary>Agent köprüsü: her şey msdb'de (prosedürler + IS_ROLEMEMBER); 30 sn tavan.
+    /// Geçmiş tek okumada tüm job'ları getirir (msdb varsayılan saklaması 1.000 satır) — tavan 5.000.</summary>
+    public Task<QueryResult> AgentSorguAsync(string sql, CancellationToken ct)
+        => _profil is null
+            ? Task.FromResult(new QueryResult { Hata = new SqlHata("Bağlantı yok.", 0, 0, 0) })
+            : _executor.ExecuteAsync(_profil, sql,
+                new ExecuteOptions
+                {
+                    VeritabaniOverride = "msdb",
+                    SatirSiniri = 5_000,
+                    KomutTimeoutSnOverride = 30,
+                }, ct);
 
     /// <summary>FTS köprüsü: keşif/metadata sorguları — seçilen DB'de, 30 sn tavan + 1.000 satır
     /// (envanter küçüktür; tavanlar donma kalkanı).</summary>
@@ -858,6 +912,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(TeshisGorunur))]
     [NotifyPropertyChangedFor(nameof(ProfilerGorunur))]
     [NotifyPropertyChangedFor(nameof(FtsGorunur))]
+    [NotifyPropertyChangedFor(nameof(AgentGorunur))]
     private bool _motorMssqlMu = true;
 
     /// <summary>Bağlı bir profil var mı (v22-S3: motor farkı gözetmeyen menü öğeleri için —
@@ -917,6 +972,10 @@ public partial class MainViewModel : ObservableObject
     /// Sunucuda FTS bileşeni yoksa düğme yine görünür — sekme Türkçe yol gösterir
     /// (profil sunucusu değişebilir; gizlemek "neden yok?" sorusu bırakırdı).</summary>
     public bool FtsGorunur => MotorMssqlMu && _profil is not null;
+
+    /// <summary>⏱ SQL Agent düğmesi (v23-S16, K1 kararı): YALNIZ MSSQL — pg_cron/EVENT/DBMS_SCHEDULER
+    /// ayrı iş. Agent'sız sürümde (Express/LocalDB) düğme yine görünür; sekme Türkçe yol gösterir.</summary>
+    public bool AgentGorunur => MotorMssqlMu && _profil is not null;
 
     private bool _lehceBolumVar;
 
@@ -2388,6 +2447,7 @@ public partial class MainViewModel : ObservableObject
         // kapıları yine değiştirir (ilk bağlantı MSSQL ise düğmeler görünmezdi — v23 FTS ile fark edildi).
         OnPropertyChanged(nameof(ProfilerGorunur));
         OnPropertyChanged(nameof(FtsGorunur));
+        OnPropertyChanged(nameof(AgentGorunur));
         MotorMssqlMu = profil.Motor == MotorTuru.Mssql;
         MotorMongoMu = profil.Motor == MotorTuru.Mongo;
         MotorScriptDestekli = profil.Motor is not MotorTuru.Mongo; // SQL ailesinin dördü (madde 3: Oracle dahil)

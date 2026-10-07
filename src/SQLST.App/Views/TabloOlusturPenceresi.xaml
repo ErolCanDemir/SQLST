@@ -52,7 +52,7 @@
 
         <!-- Kolonlar -->
         <DataGrid x:Name="KolonGrid" AutoGenerateColumns="False" CanUserAddRows="False"
-                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
                   AutomationProperties.AutomationId="TabloKolonGrid">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Ad" Binding="{Binding Ad, UpdateSourceTrigger=PropertyChanged}" Width="150" />
