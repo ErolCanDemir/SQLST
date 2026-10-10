@@ -43,6 +43,15 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
     /// UI'ya yazamaz (m.2'deki Log Analizi deseninin sorgu sekmesi uygulaması).</summary>
     private int _kosuNesli;
     private IDbOturum? _oturum;
+    /// <summary>Uçuştaki koşunun yürütme görevi — Durdur, oturumu korumadan önce bunun bitmesini bekler.</summary>
+    private Task? _kosuGorevi;
+
+    /// <summary>Son Durdur'un oturum kararı (koru/düşür) — yeni işler oturumu almadan önce bunu bekler.</summary>
+    private Task? _oturumKarari;
+
+    /// <summary>Durdur'dan sonra iptalin sunucuda tamamlanması için beklenen süre (ms). Bu sürede
+    /// biten koşuda oturum KORUNUR (#temp/SET yerinde); bitmeyen (iptali dinlemeyen) koşuda düşürülür.</summary>
+    public int IptalBeklemeMs { get; set; } = 3000;
     private Guid? _oturumProfilId;
     /// <summary>Açık Güvenli Yazma işlemini başlatan lehçe — kararı AYNI lehçeyle uygularız (V4-S2).</summary>
     private ILehce? _islemLehcesi;
@@ -161,6 +170,16 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
         {
             // bağlantı yok/koptu vb. — canlı denetim sessiz kalır, çalıştırma yolu zaten konuşur
         }
+    }
+
+    /// <summary>Durdur sonrası "oturum korunsun mu?" kararı (en çok <see cref="IptalBeklemeMs"/>) çıkana
+    /// dek bekler, sonra oturumu verir — karar beklenmeden asılı oturum alınsa, düşürüldüğünde yeni
+    /// sorgu atılmış oturumda patlardı.</summary>
+    private async Task<IDbOturum> OturumHazirAsync(ConnectionProfile profil)
+    {
+        if (_oturumKarari is { IsCompleted: false } karar)
+            await karar;
+        return OturumAl(profil);
     }
 
     /// <summary>Bu sekmenin kalıcı oturumunu profil için hazırlar (profil değişince yeniler).</summary>
@@ -535,7 +554,7 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
             // kullanıcı kararı 2026-08-18: "bu düzenleme ile ihtiyacımız olmayacak".)
             var tabloAlicisi = new GridTabloAlicisi();
             secenekler.SonucAlici = tabloAlicisi;
-            IDbOturum oturum = OturumAl(profil);
+            IDbOturum oturum = await OturumHazirAsync(profil);
             // Batch bölme motora göre (V4-S5): MSSQL GO ile, Oracle ';' + tek başına '/' ile,
             // diğerleri tek parça (sürücüleri çok-ifadeli metni kabul eder; Mongo'da metin JSON'dur).
             IReadOnlyList<SqlBatch> batchler = SqlCozumleyici.BatchlereBol(sql, profil.Motor);
@@ -583,11 +602,13 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
             Iz.Faz("sorgu-basladi");
             Log.Information("🛩 Sorgu başladı · db={Db} · {Uzunluk} kr · {Ozet}",
                 SecilenVeritabani, sql.Length, sql.Length <= 120 ? sql : sql[..120]);
-            QueryResult sonuc = await Task.Run(() => guvenli
+            Task<QueryResult> kosu = Task.Run(() => guvenli
                 ? GuvenliYazmaYurutucu.CalistirAsync(
                     _queryService, lehce!, oturum, batchler, secenekler, ct, satirTabani)
                 : BatchYurutucu.CalistirAsync(
                     _queryService, oturum, batchler, secenekler, ct, satirTabani));
+            _kosuGorevi = kosu;
+            QueryResult sonuc = await kosu;
             Iz.Faz("okuma-bitti", sonuc.ToplamSatir);
             Log.Information("🛩 Okuma bitti · {Satir} satır · ~{MB} MB · süre {Sure}",
                 sonuc.ToplamSatir, sonuc.ToplamBayt / 1024 / 1024, sonuc.Sure);
@@ -821,39 +842,68 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
             : profil.KullaniciAdi is { Length: > 0 } k ? k : "?";
 
     /// <summary>Esc / ■ Durdur — ANINDA keser (v20-S21 canlı bulgu 2026-08-14: "Durdur dediğimde
-    /// direkt durması lazım"). UI iptali BEKLEMEZ: nesil artar, durum anında boşalır (m.2 deseni).
-    /// Nazik iptal (Attention) yine havuzda gönderilir (m.15) AMA ek olarak sekmenin kalıcı
-    /// oturumu DÜŞÜRÜLÜR: iptali dinlemeyen asılı komut bağlantı kapanınca sunucuda da ölür ve
-    /// oturum kilidini (SemaphoreSlim) bırakmış olur — eskiden o kilit yüzünden sekmede SONRAKİ
-    /// sorgular da sonsuza dek kuyrukta bekliyordu ("SELECT TOP 200'ü çalıştıramıyoruz").
-    /// Bedel: Durdur'da #temp/SET sıfırlanır (sonraki çalıştırma yeni bağlantı açar) — asılı
-    /// oturumu güvenle kurtarmanın başka yolu yok; mesaj bunu açıkça söyler.</summary>
+    /// direkt durması lazım"). UI iptali BEKLEMEZ: nesil artar, durum anında boşalır (m.2 deseni);
+    /// nazik iptal (Attention) havuzda gönderilir (m.15).
+    /// Oturum (v23-S22, kullanıcı: "sorguyu durdurunca #temp'ler neden kalkıyor"): eskiden HER Durdur'da
+    /// düşürülüyordu — asılı komut oturum kilidini (SemaphoreSlim) tutup sonraki sorguları sonsuza dek
+    /// kuyrukta bekletiyordu ("SELECT TOP 200'ü çalıştıramıyoruz"), ama bedeli #temp/SET kaybıydı.
+    /// Artık SSMS gibi: koşu iptale uyup <see cref="IptalBeklemeMs"/> içinde biterse oturum KORUNUR
+    /// (Güvenli Yazma işlemi o süre içinde zaten geri alınmış olur); bitmezse — iptali dinlemeyen
+    /// asılı komut — eskisi gibi düşürülür, bağlantı kapanınca komut sunucuda da ölür.</summary>
     [RelayCommand]
     public void Iptal()
     {
         if (_cts is null)
             return;
 
-        _kosuNesli++;                          // geciken koşunun devamları artık UI'ya yazamaz
+        int nesil = ++_kosuNesli;              // geciken koşunun devamları artık UI'ya yazamaz
         IptalYardimcisi.ArkaPlandaIptal(_cts); // m.15: Cancel UI'da bloklayabilir — havuzda
         _cts = null;
 
-        IDbOturum? eski = _oturum;             // oturum ANINDA ayrılır — yeni koşu taze bağlantı açar
-        _oturum = null;
-        if (eski is not null)
-            _ = Task.Run(async () =>
-            {
-                try { await eski.DisposeAsync(); }
-                catch { } // asılı komutla yarışta en iyi çaba — bağlantı finally'sinde yine kapanır
-            });
+        IDbOturum? oturum = _oturum;
+        Task? kosu = _kosuGorevi;
+        SynchronizationContext? ui = SynchronizationContext.Current;
+        if (oturum is not null)
+            _oturumKarari = OturumuKoruYaDaDusurAsync(oturum, kosu, nesil, ui);
 
         _sayac.Stop();
         _kronometre.Stop();
         Durum = SekmeDurumu.IptalEdildi;
         SonucOzeti = "iptal edildi";
-        Mesajlar = "Durduruldu — sorgu sunucuda da kesildi (sekmenin bağlantısı kapatıldı; "
-                 + "bir sonraki çalıştırma yeni bağlantı açar, #temp tablolar sıfırlanır).";
+        Mesajlar = "Durduruldu — sorgu sunucuda kesildi. Bağlantı korunuyor: #temp tablolar ve SET ayarları yerinde.";
         SonucSekmeIndex = 1;
+    }
+
+    /// <summary>İptal edilen koşunun bitmesini kısa süre bekler; bitmezse oturumu düşürür (asılı komut
+    /// sunucuda da ölür, kilit bırakılır). Düşürme yalnız oturum hâlâ bu sekmeninkiyse yapılır.</summary>
+    private async Task OturumuKoruYaDaDusurAsync(IDbOturum oturum, Task? kosu, int nesil, SynchronizationContext? ui)
+    {
+        if (kosu is not null)
+        {
+            Task ilk = await Task.WhenAny(kosu, Task.Delay(IptalBeklemeMs)).ConfigureAwait(false);
+            if (ilk == kosu)
+                return; // iptal sunucuda tamamlandı — oturum korunur
+        }
+
+        if (!ReferenceEquals(Interlocked.CompareExchange(ref _oturum, null, oturum), oturum))
+            return; // bu arada oturum zaten değişti
+        try { await oturum.DisposeAsync().ConfigureAwait(false); }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException
+                                       or System.Data.Common.DbException or TimeoutException)
+        {
+            // asılı komutla yarışta en iyi çaba — bağlantı koşunun finally'sinde yine kapanır
+        }
+
+        void Yaz()
+        {
+            if (nesil == _kosuNesli)
+                Mesajlar = "Durduruldu — sorgu iptale yanıt vermedi; sekmenin bağlantısı kapatıldı. "
+                         + "Bir sonraki çalıştırma yeni bağlantı açar, #temp tablolar sıfırlandı.";
+        }
+        if (ui is not null)
+            ui.Post(_ => Yaz(), null);
+        else
+            Yaz();
     }
 
     // --- 🔍 Sorgu provası (V15-S2, BF-2 — kullanıcı: "her update'ten önce select yapıp bakıyoruz") ---
@@ -896,7 +946,7 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
 
         try
         {
-            QueryResult sonuc = await OturumAl(profil).CalistirAsync(
+            QueryResult sonuc = await (await OturumHazirAsync(profil)).CalistirAsync(
                 plan.SayimSql + "\n" + plan.OrnekSql, SecenekleriKur(), CancellationToken.None);
             if (sonuc.Hata is not null || sonuc.ResultSetler.Count < 2)
             {
@@ -1115,7 +1165,7 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
         OnPropertyChanged(nameof(DisaAktarilabilir));
         try
         {
-            IDbOturum oturum = OturumAl(profil);
+            IDbOturum oturum = await OturumHazirAsync(profil);
             // SecenekleriKur DB override'ı taşır; AkisAsync satır sınırını YOK SAYAR (tümü gelir).
             return await CsvYazici.AkislaDosyayaYazAsync(
                 oturum, SonCalisanSql!, SecenekleriKur(), dosyaYolu, ilerleme: ilerleme, ct: ct);
@@ -1219,7 +1269,7 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
         if (lehce.PlanTekIfadeIster && CokIfadeliMi(sql))
             return (null, "Bu motorda plan tek bir ifade için alınır — tek bir sorgu seçip yeniden deneyin.");
 
-        IDbOturum oturum = OturumAl(profil);
+        IDbOturum oturum = await OturumHazirAsync(profil);
         ExecuteOptions opts = SecenekleriKur();
 
         // Plan da İPTAL EDİLEBİLİR olmalı (A1/B1 bulgusu, 2026-07-19). Önce PlanAlAsync
@@ -1315,7 +1365,7 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
         if (string.IsNullOrWhiteSpace(sorgu))
             return (null, "Plan alınacak sorgu yok.");
 
-        IDbOturum oturum = OturumAl(profil);
+        IDbOturum oturum = await OturumHazirAsync(profil);
         ExecuteOptions opts = SecenekleriKur();
 
         try

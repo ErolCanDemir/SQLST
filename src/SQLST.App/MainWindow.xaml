@@ -4002,6 +4002,7 @@
                                                                           AutoGeneratingColumn="Grid_AutoGeneratingColumn"
                                                                           EnableRowVirtualization="True" EnableColumnVirtualization="True"
                                                                           SelectionUnit="CellOrRowHeader" SelectionMode="Extended"
+                                                                          CanUserSortColumns="False"
                                                                           SelectedCellsChanged="Grid_SecimDegisti"
                                                                           MouseDoubleClick="Grid_HucreCiftTik"
                                                                           ContextMenuOpening="SonucMenu_Aciliyor"

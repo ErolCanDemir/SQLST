@@ -2747,8 +2747,27 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             && set.KolonTipleri.TryGetValue(e.PropertyName, out string? tip))
             baslikStili.Setters.Add(new Setter(ToolTipProperty, $"{e.PropertyName}  ·  {tip}"));
 
-        // Sağ tık → bu kolonu gizle (huniyi açmadan tek kolon gizlemenin kısayolu — 2026-07-28).
+        // v23-S23 (kullanıcı kararı 10 Eki, B yolu — SSMS gibi): başlığa TIK kolonu SEÇER (Ctrl ekler,
+        // Shift aralık); sıralama sağ tık menüsüne taşındı (grid'de CanUserSortColumns=False).
+        baslikStili.Setters.Add(new EventSetter(System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
+            new RoutedEventHandler(KolonBasligi_Click)));
+        if (TryFindResource("SiraliBaslikSablonu") is DataTemplate siraliBaslik)
+            baslikStili.Setters.Add(new Setter(ContentControl.ContentTemplateProperty, siraliBaslik));
+
+        // Sağ tık → sırala · bu kolonu gizle (huniyi açmadan tek kolon gizlemenin kısayolu — 2026-07-28).
         var baslikMenu = new ContextMenu();
+        foreach ((string metin, System.ComponentModel.ListSortDirection? yon) in new (string, System.ComponentModel.ListSortDirection?)[]
+                 {
+                     ("↑ Artan sırala", System.ComponentModel.ListSortDirection.Ascending),
+                     ("↓ Azalan sırala", System.ComponentModel.ListSortDirection.Descending),
+                     ("✕ Sıralamayı kaldır", null),
+                 })
+        {
+            var siralaOge = new MenuItem { Header = metin, Tag = ((DataGridColumn)kolon, yon) };
+            siralaOge.Click += KolonSirala_Click;
+            baslikMenu.Items.Add(siralaOge);
+        }
+        baslikMenu.Items.Add(new Separator());
         var gizleOge = new MenuItem { Header = "🚫 Bu kolonu gizle", Tag = kolon };
         gizleOge.Click += KolonuGizle_Click;
         baslikMenu.Items.Add(gizleOge);
@@ -3462,6 +3481,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
     {
         var grid = (DataGrid)sender;
         e.Handled = true;
+        if (BuyukKolonSeciminiKopyala(grid))
+            return;
         List<DataGridCellInfo> gecerli = [.. grid.SelectedCells.Where(c => c.IsValid && c.Item is DataRowView)];
         if (gecerli.Count == 0)
             return;
@@ -3534,14 +3555,20 @@ public partial class MainWindow : Window // partial: GeneratedRegex
     // ---- Grid süper güçleri (V2-S6) ----
 
     /// <summary>Dev seçim/sonuçta güvenli sayılan azami hücre (v19-S15 — donma/OOM kalkanı).</summary>
-    private const int SecimHucreTavani = 200_000;
+    public static int SecimHucreTavani { get; set; } = 200_000;
 
     /// <summary>Seçim istatistiği (Excel durum çubuğu deseni): COUNT/SUM/AVG/MIN/MAX.</summary>
     private void Grid_SecimDegisti(object sender, SelectedCellsChangedEventArgs e)
     {
         var grid = (DataGrid)sender;
-        if (grid.DataContext is not SonucSetiGorunumu set)
+        if (_topluSecim || grid.DataContext is not SonucSetiGorunumu set)
             return;
+        if (grid.SelectedCells.Count > 0 && e is not null)
+        {
+            // Kullanıcı hücre seçti → kolon seçimi durumu düşer (Ctrl/Shift çapası yeni seçimden).
+            _buyukKolonSecimi.Remove(grid);
+            _seciliKolonlar.Remove(grid);
+        }
 
         // v19-S15: istatistik hesabı seçimin TAMAMINI gezmez — dev seçimde (Shift ile geniş
         // aralık) UI iş parçacığında saniyeler süren tur atılıyordu; tavandan sonrası kesilir.
@@ -3580,6 +3607,135 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         string metin = await Task.Run(() => SecimIstatistikcisi.Hesapla(
             tablo.Rows.Cast<System.Data.DataRow>().SelectMany(r => r.ItemArray)).Metin);
         set.SecimIstatistigi = $"tüm sonuç ({tablo.Rows.Count:N0} satır) — {metin}";
+    }
+
+    // ---- Kolon seçimi + menüden sıralama (v23-S23 — kullanıcı: "kolona tıklayınca sıralama yapıyoruz,
+    //      tüm kolonu seçme özelliğimiz yok"; karar B: SSMS gibi başlık tıklaması kolonu seçer) ----
+
+    /// <summary>Grid başına seçili kolonlar (Ctrl ile ekleme / Shift aralığı için) ve Shift çapası.</summary>
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<DataGrid, List<DataGridColumn>> _seciliKolonlar = new();
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<DataGrid, DataGridColumn> _kolonCapasi = new();
+
+    /// <summary>Tavan üstü kolon seçimi: hücreler GÖRSEL seçilmez (v19-S15 kalkanı), Ctrl+C ve istatistik
+    /// kolonun TAMAMINDAN çalışır. Kullanıcı başka hücre seçince düşer.</summary>
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<DataGrid, List<DataGridColumn>> _buyukKolonSecimi = new();
+
+    /// <summary>Toplu hücre ekleme sürerken her ekleme için istatistik yeniden hesaplanmasın.</summary>
+    private bool _topluSecim;
+
+    private void KolonBasligi_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not DataGridColumnHeader { Column: { } kolon } baslik
+            || UstEleman<DataGrid>(baslik) is not { DataContext: SonucSetiGorunumu set } grid)
+            return;
+        e.Handled = true;
+
+        ModifierKeys tus = Keyboard.Modifiers;
+        List<DataGridColumn> onceki = _seciliKolonlar.TryGetValue(grid, out var l) ? l : [];
+        List<DataGridColumn> kolonlar;
+        if ((tus & ModifierKeys.Shift) != 0 && _kolonCapasi.TryGetValue(grid, out DataGridColumn? capa) && grid.Columns.Contains(capa))
+        {
+            int a = Math.Min(capa.DisplayIndex, kolon.DisplayIndex), b = Math.Max(capa.DisplayIndex, kolon.DisplayIndex);
+            kolonlar = [.. grid.Columns.Where(c => c.Visibility == Visibility.Visible && c.DisplayIndex >= a && c.DisplayIndex <= b)
+                .OrderBy(c => c.DisplayIndex)];
+        }
+        else if ((tus & ModifierKeys.Control) != 0)
+        {
+            kolonlar = [.. onceki.Where(c => c != kolon)];
+            if (!onceki.Contains(kolon))
+                kolonlar.Add(kolon);
+            _kolonCapasi.AddOrUpdate(grid, kolon);
+        }
+        else
+        {
+            kolonlar = [kolon];
+            _kolonCapasi.AddOrUpdate(grid, kolon);
+        }
+        KolonlariSec(grid, set, kolonlar);
+    }
+
+    /// <summary>Kolonların TÜM hücrelerini seçer; tavan üstünde görsel seçim yerine "büyük kolon seçimi" kurar.</summary>
+    private void KolonlariSec(DataGrid grid, SonucSetiGorunumu set, List<DataGridColumn> kolonlar)
+    {
+        _seciliKolonlar.AddOrUpdate(grid, kolonlar);
+        _buyukKolonSecimi.Remove(grid);
+        grid.Focus(); // Ctrl+C (CommandBinding) grid'e odak ister — başlık odak almaz
+        if (kolonlar.Count == 0)
+        {
+            grid.UnselectAllCells();
+            return;
+        }
+
+        if ((long)grid.Items.Count * kolonlar.Count <= SecimHucreTavani)
+        {
+            _topluSecim = true;
+            try
+            {
+                grid.UnselectAllCells();
+                foreach (object satir in grid.Items)
+                    foreach (DataGridColumn k in kolonlar)
+                        grid.SelectedCells.Add(new DataGridCellInfo(satir, k));
+            }
+            finally
+            {
+                _topluSecim = false;
+            }
+            if (grid.Items.Count > 0)
+                grid.CurrentCell = new DataGridCellInfo(grid.Items[0], kolonlar[0]);
+            Grid_SecimDegisti(grid, null!);
+            return;
+        }
+
+        // Tavan üstü: görsel seçim yok (donma/OOM kalkanı) — istatistik ve kopya tüm kolondan.
+        _topluSecim = true;
+        try { grid.UnselectAllCells(); }
+        finally { _topluSecim = false; }
+        _buyukKolonSecimi.AddOrUpdate(grid, kolonlar);
+        _ = BuyukKolonIstatistigiAsync(set, kolonlar);
+    }
+
+    private async Task BuyukKolonIstatistigiAsync(SonucSetiGorunumu set, List<DataGridColumn> kolonlar)
+    {
+        DataView gorunum = set.Gorunum;
+        string[] adlar = [.. kolonlar.Select(k => KolonAdiCoz(k.SortMemberPath ?? ""))];
+        set.SecimIstatistigi = "⏳ kolon(lar)ın tamamı üzerinden hesaplanıyor…";
+        string metin = await Task.Run(() => SecimIstatistikcisi.Hesapla(
+            gorunum.Cast<DataRowView>().SelectMany(r => adlar.Select(ad => r.Row[ad]))).Metin);
+        set.SecimIstatistigi = $"{kolonlar.Count} kolon · tüm sonuç ({gorunum.Count:N0} satır) — {metin} · Ctrl+C tamamını kopyalar";
+    }
+
+    /// <summary>Tavan üstü kolon seçiminde Ctrl+C: kolonların tamamı ham TSV (görünüm sırasında).</summary>
+    private bool BuyukKolonSeciminiKopyala(DataGrid grid)
+    {
+        if (grid.SelectedCells.Count > 0 || !_buyukKolonSecimi.TryGetValue(grid, out var kolonlar)
+            || grid.DataContext is not SonucSetiGorunumu set)
+            return false;
+        DataColumn[] dc = [.. kolonlar.OrderBy(k => k.DisplayIndex)
+            .Select(k => set.Tablo.Columns[KolonAdiCoz(k.SortMemberPath ?? "")]!)];
+        string metin = string.Join("\r\n", set.Gorunum.Cast<DataRowView>()
+            .Select(r => string.Join('\t', dc.Select(c => HamDeger.Metin(r.Row, c)))));
+        Clipboard.SetText(metin);
+        return true;
+    }
+
+    /// <summary>Başlık sağ tık → artan / azalan / sıralamayı kaldır (tıklama artık kolon seçer).</summary>
+    private void KolonSirala_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: ValueTuple<DataGridColumn, System.ComponentModel.ListSortDirection?> etiket } oge
+            || oge.Parent is not ContextMenu { PlacementTarget: DataGridColumnHeader baslik }
+            || UstEleman<DataGrid>(baslik) is not { ItemsSource: DataView gorunum } grid)
+            return;
+        (DataGridColumn kolon, System.ComponentModel.ListSortDirection? yon) = etiket;
+        foreach (DataGridColumn k in grid.Columns)
+            k.SortDirection = null;
+        if (yon is null)
+        {
+            gorunum.Sort = "";
+            return;
+        }
+        string ad = KolonAdiCoz(kolon.SortMemberPath ?? "");
+        gorunum.Sort = $"[{ad.Replace("\\", "\\\\").Replace("]", "\\]")}] {(yon == System.ComponentModel.ListSortDirection.Ascending ? "ASC" : "DESC")}";
+        kolon.SortDirection = yon;
     }
 
     /// <summary>AutoGenerate kolon yolu "[ad]" kaçışlı olabilir — DataTable kolon adına çevir.</summary>

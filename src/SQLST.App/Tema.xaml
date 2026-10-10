@@ -1035,6 +1035,24 @@
         </Style.Triggers>
     </Style>
 
+    <!-- v23-S23: sonuç grid'inde sıralama başlık MENÜSÜNDEN yapılır; varsayılan başlık şablonunun oku bu
+         temada çizilmiyordu (piksel kontrolü) — başlık metninin yanına vurgu renginde ▲/▼. -->
+    <DataTemplate x:Key="SiraliBaslikSablonu">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding}" />
+            <TextBlock x:Name="ok" Margin="5,0,0,0" FontSize="9" VerticalAlignment="Center"
+                       Foreground="{DynamicResource VurguFircasi}" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}" Value="Ascending">
+                <Setter TargetName="ok" Property="Text" Value="▲" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding SortDirection, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}" Value="Descending">
+                <Setter TargetName="ok" Property="Text" Value="▼" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <!-- Tasarım 1 (2026-07-24): başlık metni soluk + yalnız ALT çizgi (dikey ayraç kalktı) —
          başlık satırı veriden geride dursun, göz veriye gitsin. -->
     <Style TargetType="DataGridColumnHeader">

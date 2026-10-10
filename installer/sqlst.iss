@@ -10,7 +10,7 @@
 ; 2026-07-27: "saçma sapan görünüyor"). derle.ps1 ve düzenleme araçları BOM'u korumalıdır.
 
 #define Uygulama "SQLST"
-#define Surum "0.28.0"
+#define Surum "0.29.0"
 #define Yayinci "LST"
 #define ExeAdi "SQLST.exe"
 

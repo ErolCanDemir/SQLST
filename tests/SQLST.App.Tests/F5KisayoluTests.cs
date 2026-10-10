@@ -129,6 +129,8 @@ public class F5KisayoluTests : IDisposable
                 sahip.Kosulanlar.Enqueue(sql);
                 if (sql.Contains("ASILI"))
                     await sahip.AsiliKilit.Task; // iptali dinlemez — kilit açılana dek asılı
+                if (sql.Contains("UZUN"))
+                    await Task.Delay(Timeout.Infinite, ct); // iptali DİNLER — gerçek SQL Server gibi
                 return new QueryResult { Basarili = true };
             }
 
@@ -146,6 +148,7 @@ public class F5KisayoluTests : IDisposable
     {
         await _vm.ProfilYukleAsync(Profiller.Yap());
         SorguSekmesiViewModel a = _vm.SekmeAc("a.sql", "SELECT 1 -- ASILI", null);
+        a.IptalBeklemeMs = 200; // iptali DİNLEMEYEN koşu: kısa bekleyişten sonra oturum düşürülür
         string sql = "SELECT 1 -- ASILI";
         a.MetinSaglayici = () => sql; // Belge thread-affine — delege kullan
         _vm.SeciliSekme = a;
@@ -166,9 +169,36 @@ public class F5KisayoluTests : IDisposable
         sql = "SELECT 2";
         await a.CalistirAsync();
         Assert.Equal(SekmeDurumu.Tamamlandi, a.Durum);
-        Assert.Equal(2, _fabrika.OlusturSayisi); // Durdur oturumu düşürdü → ikinci oturum açıldı
+        Assert.Equal(2, _fabrika.OlusturSayisi); // asılı koşu iptale uymadı → oturum düşürüldü, ikincisi açıldı
 
         _ = f5; // bayat koşu kilit açılmadıkça asılı kalır (kasıtlı)
+    }
+
+    // ── v23-S22 (kullanıcı 2026-10-10: "sorguyu durdurunca #temp'ler neden kalkıyor") ──────────
+
+    [Fact]
+    public async Task Durdur_iptale_uyan_sorguda_oturumu_korur_temp_tablolar_kalir()
+    {
+        await _vm.ProfilYukleAsync(Profiller.Yap());
+        SorguSekmesiViewModel a = _vm.SekmeAc("a.sql", "", null);
+        string sql = "SELECT * INTO #t FROM x; WAITFOR DELAY '01:00' -- UZUN";
+        a.MetinSaglayici = () => sql;
+        _vm.SeciliSekme = a;
+        Task f5 = _vm.SeciliyiCalistirCommand.ExecuteAsync(null);
+        for (int i = 0; i < 100 && _fabrika.Kosulanlar.Count(s => s.Contains("UZUN")) == 0; i++)
+            await Task.Delay(20);
+        Assert.True(a.CalisiyorMu);
+
+        a.IptalCommand.Execute(null); // ■ Durdur — sahte, gerçek SQL Server gibi iptale uyar
+        Assert.False(a.CalisiyorMu);   // yine ANINDA boşalır
+        Assert.Contains("Bağlantı korunuyor", a.Mesajlar);
+        await f5;
+
+        sql = "SELECT * FROM #t";
+        await a.CalistirAsync();
+        Assert.Equal(SekmeDurumu.Tamamlandi, a.Durum);
+        Assert.Equal(1, _fabrika.OlusturSayisi); // AYNI oturum — #temp tablolar ve SET ayarları yerinde
+        Assert.DoesNotContain("sıfırlandı", a.Mesajlar);
     }
 
     [Fact]
@@ -176,6 +206,7 @@ public class F5KisayoluTests : IDisposable
     {
         await _vm.ProfilYukleAsync(Profiller.Yap());
         SorguSekmesiViewModel a = _vm.SekmeAc("a.sql", "SELECT 1 -- ASILI", null);
+        a.IptalBeklemeMs = 200;
         string sql = "SELECT 1 -- ASILI";
         a.MetinSaglayici = () => sql; // Belge thread-affine — delege kullan
         _vm.SeciliSekme = a;
