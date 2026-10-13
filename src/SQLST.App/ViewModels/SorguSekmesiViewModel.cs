@@ -532,6 +532,9 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
         Durum = SekmeDurumu.Calisiyor;
         SonCalisanSql = sql;
         OnPropertyChanged(nameof(DisaAktarilabilir)); // SonCalisanSql düz özellik — ilk dolduğunda buton uyanmalı
+        // 📊 v23-S24: grid temizlenmeden ÖNCE önceki setler tutulur — açık grafik paneli (seçimleriyle) yeni sete
+        // taşınır (K8: açıksa açık kalır, kapalıysa kapalı). Aşağıda GrafikDurumunuTasi.
+        IReadOnlyList<SonucSetiGorunumu> oncekiSetler = SonucSetleri;
         SonucSetleri = [];
         BilgiBandi = null;
         Mesajlar = "";
@@ -727,6 +730,7 @@ public partial class SorguSekmesiViewModel : ObservableObject, ISekme
                                + $"  (her {Math.Max(2, OtoYenileSaniye)} sn)";
             }
 
+            SonucSetiGorunumu.GrafikDurumunuTasi(oncekiSetler, setler);
             SonucSetleri = setler;
 
             // 🧭 v22-S4 (çökme denetimi): "grid-hazir"dan SONRASI tek işaretsiz bölgeydi — WPF kolon

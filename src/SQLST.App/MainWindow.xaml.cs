@@ -102,6 +102,12 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         // 🔎 FTS S4 (v23-S17): doldurma / değişiklik izleme / katalog işlemleri onayı.
         vm.FtsOnayiIste = soru => Iletisim.Sor(this, "SQLST — Full-Text", soru.Baslik, soru.Mesaj, soru.OnayMetni,
             soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
+        // 🔐 Güvenlik (v23-S29): rol / aç-kapat / kullanıcı / yetim onayı (tehlikeli roller kırmızı — K5).
+        vm.GuvenlikOnayiIste = soru => Iletisim.Sor(this, "SQLST — Güvenlik", soru.Baslik, soru.Mesaj, soru.OnayMetni,
+            soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
+        // 📈 Query Store (v23-S28): aç / plan zorla / kaldır onayı.
+        vm.QueryStoreOnayiIste = soru => Iletisim.Sor(this, "SQLST — Query Store", soru.Baslik, soru.Mesaj, soru.OnayMetni,
+            soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
         // Script → Görsel (v6-S5): sorgu tam temsil edilemiyorsa ne atlanacağını gösterip sor.
         vm.GorseleCevirmeOnayiIste = mesaj => Iletisim.Sor(this, "SQLST — Görsele çevir",
             "Sorgu görsele tam çevrilemiyor", mesaj, "Yine de çevir", IletisimTuru.Uyari);
@@ -368,6 +374,9 @@ public partial class MainWindow : Window // partial: GeneratedRegex
 
     /// <summary>⏱ SQL Agent sekmesi (v23-S16) — ray düğmesi; tek örnek VM'de.</summary>
     private void Agent_Click(object sender, RoutedEventArgs e) => _vm.AgentAc();
+
+    /// <summary>🔐 Güvenlik (v23-S29): rail düğmesi → sunucu sekmesi.</summary>
+    private void Guvenlik_Click(object sender, RoutedEventArgs e) => _vm.GuvenlikAc();
 
     /// <summary>"▶ Başlat ▾" — baştan / seçili adımdan seçimi açılır menüyle.</summary>
     private void AgentBaslatMenu_Click(object sender, RoutedEventArgs e)
@@ -751,11 +760,24 @@ public partial class MainWindow : Window // partial: GeneratedRegex
 
         try
         {
+            // 📊 S2 "rapora dönüştür": açık grafik panelleri PNG olarak tablonun üstüne gömülür.
+            var grafikler = new Dictionary<int, string>();
+            for (int i = 0; i < sekme.SonucSetleri.Count; i++)
+            {
+                SonucSetiGorunumu set = sekme.SonucSetleri[i];
+                if (!set.GrafikAcik || GrafikPaneliBul(this, set) is not { } panel || panel.GoruntuAl() is not { } bitmap)
+                    continue;
+                var kodlayici = new PngBitmapEncoder();
+                kodlayici.Frames.Add(BitmapFrame.Create(bitmap));
+                using var ms = new MemoryStream();
+                kodlayici.Save(ms);
+                grafikler[i] = Convert.ToBase64String(ms.ToArray());
+            }
             string html = HtmlRaporYazici.Yaz(
                 _profil?.Sunucu ?? "-", sekme.SecilenVeritabani, sekme.SonCalisanSql,
                 sekme.SureMetni,
                 [.. sekme.SonucSetleri.Select(s => (s.Baslik, s.Tablo))],
-                DateTime.Now);
+                DateTime.Now, grafikler);
             await HtmlRaporYazici.DosyayaYazAsync(html, diyalog.FileName);
             _vm.Durum = $"HTML raporu kaydedildi: {Path.GetFileName(diyalog.FileName)}";
         }
@@ -763,6 +785,30 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         {
             Iletisim.Hata(this, "SQLST", "Rapor yazılamadı", ex);
         }
+    }
+
+    /// <summary>Set'in grafik panelini görsel ağaçta bulur (DataContext eşleşmesi) — rapora gömme için.</summary>
+    internal static GrafikPaneli? GrafikPaneliBul(DependencyObject kok, SonucSetiGorunumu set)
+    {
+        int n = VisualTreeHelper.GetChildrenCount(kok);
+        for (int i = 0; i < n; i++)
+        {
+            DependencyObject c = VisualTreeHelper.GetChild(kok, i);
+            if (c is GrafikPaneli p && ReferenceEquals(p.DataContext, set))
+                return p;
+            if (GrafikPaneliBul(c, set) is { } bulunan)
+                return bulunan;
+        }
+        return null;
+    }
+
+    /// <summary>📊 Grafik (v23-S24): paneli aç/kapat — YALNIZ bu düğme açar (K8), set başına.</summary>
+    private void GrafikAc_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is not SonucSetiGorunumu set)
+            return;
+        if (set.GrafikAcik) set.GrafikKapat();
+        else set.GrafikAc();
     }
 
     // ---- Kısayol kılavuzu (F1 / üst şerit düğmesi) ----
@@ -2568,6 +2614,38 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         PencereGoster(new Views.SemaKopyalamaPenceresi(_semaKopyalama, kaynak, dugum.Ad, profiller) { Owner = this });
     }
 
+    /// <summary>💾 Yedek al (v23-S26 S1): DB sağ tık → pencere; script sekmede açılabilir, koşu ürün içinde.</summary>
+    private void YedekAl_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.AktifProfil is not { } profil
+            || (sender as FrameworkElement)?.DataContext is not ViewModels.GezginVeritabani dugum)
+            return;
+        var vm = new YedekPenceresiViewModel(dugum.Ad, profil.Ad, _vm.SunucuKomutuAsync,
+            (baslik, script) => _vm.SekmeAc(baslik, script, dugum.Ad));
+        PencereGoster(new YedekPenceresi(vm) { Owner = this });
+    }
+
+    /// <summary>📈 Query Store (v23-S28): DB sağ tık → sekme.</summary>
+    private void QueryStore_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ViewModels.GezginVeritabani dugum)
+            _vm.QueryStoreAc(dugum.Ad);
+    }
+
+    /// <summary>⏪ Geri yükle (v23-S26 S2): DB sağ tık → pencere; onaylar Tehlike kutusuyla (K5/K9).</summary>
+    private void GeriYukle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.AktifProfil is not { } profil
+            || (sender as FrameworkElement)?.DataContext is not ViewModels.GezginVeritabani dugum)
+            return;
+        GeriYuklemePenceresi? pencere = null;
+        var vm = new GeriYuklemeViewModel(dugum.Ad, profil.Ad, _vm.SunucuKomutuAsync,
+            (baslik, script) => _vm.SekmeAc(baslik, script, "master"),
+            (baslik, mesaj, onay) => Iletisim.Sor(pencere, "SQLST — Geri yükle", baslik, mesaj, onay, IletisimTuru.Tehlike));
+        pencere = new GeriYuklemePenceresi(vm) { Owner = this };
+        PencereGoster(pencere); // yeni ada geri yüklemede ağaç ⟳ ile tazelenir (pencere bunu söyler)
+    }
+
     /// <summary>🔗 Bağımlılıklar (2026-08-03): nesne sağ-tık → tembel yüklemeli AĞAÇ penceresi
     /// (kullanıcı isteği: SP zinciri / ALTER etki analizi); iki-grid script görünümü pencerede düğme.</summary>
     private void Bagimliliklar_Click(object sender, RoutedEventArgs e)
@@ -2862,6 +2940,7 @@ public partial class MainWindow : Window // partial: GeneratedRegex
     {
         "M:Mongo" => Gorunurluk(_vm.MotorMongoMu),
         "M:Mssql" => Gorunurluk(_vm.MotorMssqlMu),
+        "M:MssqlYazma" => Gorunurluk(_vm.MotorMssqlMu && _vm.AktifProfil?.SaltOkunur != true), // v23-S26 K5
         "M:Script" => Gorunurluk(_vm.MotorScriptDestekli),
         _ => mevcut,
     };

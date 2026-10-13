@@ -8,6 +8,7 @@
         xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:conv="clr-namespace:SQLST.App.Converters"
         xmlns:app="clr-namespace:SQLST.App"
+        xmlns:views="clr-namespace:SQLST.App.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="SQLST" Height="700" Width="1100" WindowStartupLocation="CenterScreen" Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}"
@@ -288,6 +289,12 @@
                                 Visibility="{Binding AgentGorunur, Converter={StaticResource BoolGorunurluk}}"
                                 ToolTip="SQL Server Agent: job'ların durumu, son/sonraki koşu, geçmiş ve hata mesajları; başlat · durdur · aç/kapat · script olarak al"
                                 AutomationProperties.AutomationId="BtnAgent" />
+                        <!-- 🔐 Güvenlik (v23-S29, K1): YALNIZ MSSQL — login'ler, kullanıcılar, roller, yetkiler -->
+                        <Button Style="{StaticResource RayOgesi}" Background="#B45309" Tag="{StaticResource Ikon.Kilit}"
+                                Content="Güvenlik" Click="Guvenlik_Click"
+                                Visibility="{Binding GuvenlikGorunur, Converter={StaticResource BoolGorunurluk}}"
+                                ToolTip="Güvenlik: login'ler (SQL/Windows), veritabanı kullanıcıları, roller ve açık yetkiler; login aç/kapat · rol ekle-çıkar · yetim kullanıcıyı bağla — onaylı, script olarak alınabilir"
+                                AutomationProperties.AutomationId="BtnGuvenlik" />
                         <!-- 🤖 Asistan (v11-S1, 2026-07-25; v22-S6): kendi ajanımızla (🏠 Yerel/Ollama)
                              şema-farkında yardım — "müşteri için en can alıcı nokta". -->
                         <Button Style="{StaticResource RayOgesi}" Background="#EC4899" Tag="{StaticResource Ikon.Robot}"
@@ -666,6 +673,18 @@
                                         <MenuItem Header="📤 Şemayı başka bağlantıya kopyala…" Click="SemaKopyala_Click"
                                                   Tag="M:Mssql"
                                                   AutomationProperties.AutomationId="MenuSemaKopyala" />
+                                        <!-- 💾 v23-S26: yedek al — SQL Server'a özgü (BACKUP T-SQL); pencere ürün içinde koşturur. -->
+                                        <MenuItem Header="💾 Yedek al…" Click="YedekAl_Click" Tag="M:Mssql"
+                                                  ToolTip="Tam / fark / günlük yedeği sunucunun diskine alır — ilerleme ve script önizlemesiyle"
+                                                  AutomationProperties.AutomationId="MenuYedekAl" />
+                                        <!-- ⏪ v23-S26 S2: geri yükle — yazma işlemi; salt-okunur profilde gizli (K5, Tag M:MssqlYazma). -->
+                                        <MenuItem Header="⏪ Geri yükle…" Click="GeriYukle_Click" Tag="M:MssqlYazma"
+                                                  ToolTip="Yedek dosyasından bu veritabanının üzerine ya da yeni ada geri yükler — kırmızı onayla"
+                                                  AutomationProperties.AutomationId="MenuGeriYukle" />
+                                        <!-- 📈 v23-S28: Query Store sekmesi — DB düzeyi (K1). -->
+                                        <MenuItem Header="📈 Query Store" Click="QueryStore_Click" Tag="M:Mssql"
+                                                  ToolTip="En pahalı / gerileyen sorgular, plan geçmişi ve plan zorlama (SQL Server 2016+)"
+                                                  AutomationProperties.AutomationId="MenuQueryStore" />
                                     </ContextMenu>
                                 </StackPanel.ContextMenu>
                                 <TextBlock Text="▣" Foreground="{DynamicResource VurguFircasi}" Margin="0,0,5,0"
@@ -2477,6 +2496,426 @@
                         <!-- ⏱ SQL Agent sekmesi (v23-S16 — docs/11-sql-agent-arastirma.md, mockup
                              docs/mockup/sql-agent.html ONAYLI): durum rozeti + yönlendirme bandı · süzgeç
                              çipleri · Job Activity Monitor listesi · seçili job: Geçmiş/Adımlar/Zamanlamalar. -->
+                        <!-- 🔐 GÜVENLİK sekmesi (v23-S29 — mockup docs/mockup/guvenlik.html ONAYLI): durum · görünüm/süzgeç çipleri ·
+                             login/kullanıcı listesi · seçili öğenin rol çipleri (tık → onay) · yetkiler · DB eşlemeleri · işlemler. -->
+                        <DataTemplate DataType="{x:Type vm:GuvenlikSekmesiViewModel}">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Bottom" Background="{DynamicResource DurumCubuguZeminFircasi}" Padding="12,4">
+                                    <DockPanel TextElement.Foreground="{DynamicResource DurumCubuguMetinFircasi}" TextElement.FontSize="11.5">
+                                        <TextBlock Text="{Binding SonYenileme}" DockPanel.Dock="Right" Margin="18,0,0,0" />
+                                        <TextBlock Text="{Binding DurumCubugu}" Margin="0,0,18,0" />
+                                        <TextBlock Text="{Binding Bilgi}" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="LblGuvBilgi" />
+                                    </DockPanel>
+                                </Border>
+                                <DockPanel Margin="14,10,14,8">
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                        <Border Style="{StaticResource SonucRozeti}" Tag="{Binding DurumTuru}" CornerRadius="11" Padding="11,3" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DurumRozeti}" FontSize="12" AutomationProperties.AutomationId="LblGuvDurum" />
+                                        </Border>
+                                        <Button DockPanel.Dock="Right" Content="⟳ Yenile" Padding="10,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                Command="{Binding YenileCommand}" AutomationProperties.AutomationId="BtnGuvYenile" />
+                                        <Grid DockPanel.Dock="Right" Width="220" VerticalAlignment="Center">
+                                            <TextBox Text="{Binding AramaMetni, UpdateSourceTrigger=PropertyChanged}" Padding="6,3" AutomationProperties.AutomationId="TxtGuvAra" />
+                                            <TextBlock Text="🔍 Login / kullanıcı adında ara…" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                                       Foreground="{DynamicResource ZayifMetinFircasi}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding AramaMetni}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Meta}" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12"
+                                                   Foreground="{DynamicResource SolukMetinFircasi}" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="LblGuvMeta" />
+                                    </DockPanel>
+                                    <Border DockPanel.Dock="Top" Margin="0,0,0,8" Padding="12,8" CornerRadius="6" BorderThickness="1"
+                                            Background="{DynamicResource UyariZeminFircasi}" BorderBrush="{DynamicResource UyariKenarFircasi}"
+                                            Visibility="{Binding UyariVar, Converter={StaticResource BoolGorunurluk}}">
+                                        <TextBlock Text="{Binding Uyari}" TextWrapping="Wrap" FontSize="12.5" Foreground="{DynamicResource UyariMetinFircasi}" AutomationProperties.AutomationId="LblGuvUyari" />
+                                    </Border>
+                                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8" TextElement.FontSize="12">
+                                        <TextBlock Text="GÖRÜNÜM" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                        <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding GorunumLoginler}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvLoginler">
+                                            <TextBlock>👤 Login'ler (sunucu) <Run Text="{Binding LoginSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
+                                        </RadioButton>
+                                        <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding GorunumKullanicilar}" Margin="0,0,4,6" AutomationProperties.AutomationId="CipGuvKullanicilar">
+                                            <TextBlock>🗄 Kullanıcılar <Run Text="{Binding KullaniciSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
+                                        </RadioButton>
+                                        <ComboBox MinWidth="140" ItemsSource="{Binding Veritabanlari}" SelectedItem="{Binding SeciliDb}" VerticalAlignment="Center" Margin="0,0,16,6"
+                                                  AutomationProperties.AutomationId="CmbGuvDb" />
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding GorunumLoginler, Converter={StaticResource BoolGorunurluk}}">
+                                            <TextBlock Text="SÜZGEÇ" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding SuzgecTumu}" Content="Tümü" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvTumu" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding SuzgecSql}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvSql">
+                                                <TextBlock>SQL <Run Text="{Binding SqlSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock></RadioButton>
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding SuzgecWindows}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvWindows">
+                                                <TextBlock>Windows <Run Text="{Binding WindowsSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock></RadioButton>
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding SuzgecKapali}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvKapali">
+                                                <TextBlock>⏸ Kapalı <Run Text="{Binding KapaliSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock></RadioButton>
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding SuzgecSorunlu}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvSorunlu">
+                                                <TextBlock>⚠ Sorunlu <Run Text="{Binding SorunluSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock></RadioButton>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding GorunumKullanicilar, Converter={StaticResource BoolGorunurluk}}">
+                                            <TextBlock Text="SÜZGEÇ" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding KSuzgecTumu}" Content="Tümü" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvKTumu" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding KSuzgecYetim}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvYetim">
+                                                <TextBlock>⚠ Yetim <Run Text="{Binding YetimSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock></RadioButton>
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding KSuzgecRolsuz}" Margin="0,0,6,6" AutomationProperties.AutomationId="CipGuvRolsuz">
+                                                <TextBlock>Rolü olmayan <Run Text="{Binding RolsuzSayisi, Mode=OneWay}" FontWeight="Bold" /></TextBlock></RadioButton>
+                                        </StackPanel>
+                                    </WrapPanel>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="1*" MinHeight="120" />
+                                            <RowDefinition Height="6" />
+                                            <RowDefinition Height="1*" MinHeight="160" />
+                                        </Grid.RowDefinitions>
+                                        <!-- Login listesi -->
+                                        <DataGrid Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column"
+                                                  SelectionMode="Single" ItemsSource="{Binding Loginler}" SelectedItem="{Binding SeciliLogin}" FontFamily="Segoe UI" FontSize="12.5"
+                                                  Visibility="{Binding GorunumLoginler, Converter={StaticResource BoolGorunurluk}}" AutomationProperties.AutomationId="GuvLoginGrid">
+                                            <DataGrid.RowStyle>
+                                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Login.Kapali}" Value="True"><Setter Property="Foreground" Value="{DynamicResource ZayifMetinFircasi}" /></DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DataGrid.RowStyle>
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Login" Binding="{Binding Ad}" Width="1.6*" />
+                                                <DataGridTextColumn Header="Tür" Binding="{Binding Tur}" Width="100" />
+                                                <DataGridTemplateColumn Header="Durum" Width="110">
+                                                    <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                                        <Border Style="{StaticResource SonucRozeti}" Tag="{Binding DurumTuru}" Margin="2,1" HorizontalAlignment="Left"><TextBlock Text="{Binding DurumMetni}" FontSize="11.5" /></Border>
+                                                    </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Sunucu rolleri" Binding="{Binding RollerMetni}" Width="1.2*" />
+                                                <DataGridTextColumn Header="Varsayılan DB" Binding="{Binding VarsayilanDb}" Width="120" />
+                                                <DataGridTextColumn Header="Oturum" Binding="{Binding Oturum}" Width="70" />
+                                                <DataGridTextColumn Header="Parola değişti" Binding="{Binding ParolaMetni}" Width="110" />
+                                                <DataGridTextColumn Header="Kullanıcı olduğu DB'ler" Binding="{Binding DbMetni}" Width="1.4*" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <!-- Kullanıcı listesi -->
+                                        <DataGrid Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column"
+                                                  SelectionMode="Single" ItemsSource="{Binding Kullanicilar}" SelectedItem="{Binding SeciliKullanici}" FontFamily="Segoe UI" FontSize="12.5"
+                                                  Visibility="{Binding GorunumKullanicilar, Converter={StaticResource BoolGorunurluk}}" AutomationProperties.AutomationId="GuvKullaniciGrid">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Kullanıcı" Binding="{Binding Ad}" Width="1.4*" />
+                                                <DataGridTextColumn Header="Tür" Binding="{Binding Tur}" Width="110" />
+                                                <DataGridTextColumn Header="Kimlik" Binding="{Binding Kimlik}" Width="90" />
+                                                <DataGridTemplateColumn Header="Bağlı login" Width="1.2*">
+                                                    <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                                        <Border Style="{StaticResource SonucRozeti}" Tag="{Binding LoginTuru}" Margin="2,1" HorizontalAlignment="Left"><TextBlock Text="{Binding LoginMetni}" FontSize="11.5" /></Border>
+                                                    </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="DB rolleri" Binding="{Binding RollerMetni}" Width="1.4*" />
+                                                <DataGridTextColumn Header="Şema" Binding="{Binding Sema}" Width="90" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Height="6" Background="{DynamicResource SeritFircasi}" />
+                                        <TextBlock Grid.Row="2" Text="Ayrıntı için listeden bir login ya da kullanıcı seçin." HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource SolukMetinFircasi}" Visibility="{Binding SecimVar, Converter={StaticResource TersBoolGorunurluk}}" />
+                                        <DockPanel Grid.Row="2" Margin="0,8,0,0" Visibility="{Binding SecimVar, Converter={StaticResource BoolGorunurluk}}">
+                                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <Button Content="{Binding AcKapatMetni}" Padding="10,4" Margin="0,0,6,0" Command="{Binding AcKapatCommand}" IsEnabled="{Binding AcKapatAcik}"
+                                                            Visibility="{Binding LoginSecili, Converter={StaticResource BoolGorunurluk}}" AutomationProperties.AutomationId="BtnGuvAcKapat" />
+                                                    <Button Content="{Binding KullaniciOlusturMetni}" Padding="10,4" Margin="0,0,6,0" Command="{Binding KullaniciOlusturCommand}" IsEnabled="{Binding KullaniciOlusturAcik}"
+                                                            Visibility="{Binding LoginSecili, Converter={StaticResource BoolGorunurluk}}" ToolTip="Seçili veritabanında bu login için aynı adlı kullanıcı (CREATE USER … FOR LOGIN)"
+                                                            AutomationProperties.AutomationId="BtnGuvKullaniciOlustur" />
+                                                    <Button Content="{Binding YetimBaglaMetni}" Padding="10,4" Margin="0,0,6,0" Style="{StaticResource BirincilDugme}" Command="{Binding YetimBaglaCommand}" IsEnabled="{Binding YetimBaglaAcik}"
+                                                            Visibility="{Binding KullaniciSecili, Converter={StaticResource BoolGorunurluk}}" ToolTip="ALTER USER … WITH LOGIN — yetim kullanıcıyı aynı adlı login'e bağlar"
+                                                            AutomationProperties.AutomationId="BtnGuvYetimBagla" />
+                                                    <Button Content="📜 Script olarak al" Padding="10,4" Command="{Binding ScriptAlCommand}" ToolTip="Login/kullanıcıyı yeniden kuran script'i sekmede açar (parola yazılmaz)"
+                                                            AutomationProperties.AutomationId="BtnGuvScript" />
+                                                </StackPanel>
+                                                <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                                    <Run Text="{Binding SeciliBaslik, Mode=OneWay}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource MetinFircasi}" />
+                                                </TextBlock>
+                                                <Border Style="{StaticResource SonucRozeti}" Tag="{Binding SeciliRozetTuru}" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                                        Visibility="{Binding SeciliRozet, Converter={StaticResource DegerVarsaGorunur}}">
+                                                    <TextBlock Text="{Binding SeciliRozet}" FontSize="11.5" AutomationProperties.AutomationId="LblGuvSeciliRozet" />
+                                                </Border>
+                                                <TextBlock Text="{Binding SeciliMeta}" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource SolukMetinFircasi}" TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1*" />
+                                                    <ColumnDefinition Width="14" />
+                                                    <ColumnDefinition Width="1.4*" />
+                                                </Grid.ColumnDefinitions>
+                                                <DockPanel Grid.Column="0">
+                                                    <TextBlock DockPanel.Dock="Top" Text="{Binding RolBasligi}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" Margin="0,0,0,4" />
+                                                    <!-- Rol çipleri: işaretli kutu + ad; tık → onay → ALTER ROLE; tehlikeli roller kırmızı (K5) -->
+                                                    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding RolCipleri}" Margin="0,0,0,8" AutomationProperties.AutomationId="GuvRolCipleri">
+                                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Button Margin="0,0,6,6" Padding="8,3" Cursor="Hand" BorderThickness="1" Background="Transparent"
+                                                                        Command="{Binding DataContext.RolDegistirCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                                                        IsEnabled="{Binding DataContext.IslemYapilabilir, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                                                    <Button.Style>
+                                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                                            <Setter Property="BorderBrush" Value="{DynamicResource KenarFircasi}" />
+                                                                            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Uye}" Value="True">
+                                                                                    <Setter Property="BorderBrush" Value="{DynamicResource VurguFircasi}" />
+                                                                                    <Setter Property="Foreground" Value="{DynamicResource VurguFircasi}" />
+                                                                                    <Setter Property="Background" Value="{DynamicResource VurguZeminFircasi}" />
+                                                                                </DataTrigger>
+                                                                                <MultiDataTrigger>
+                                                                                    <MultiDataTrigger.Conditions>
+                                                                                        <Condition Binding="{Binding Uye}" Value="True" />
+                                                                                        <Condition Binding="{Binding Tehlikeli}" Value="True" />
+                                                                                    </MultiDataTrigger.Conditions>
+                                                                                    <Setter Property="BorderBrush" Value="{DynamicResource TehlikeFircasi}" />
+                                                                                    <Setter Property="Foreground" Value="{DynamicResource TehlikeFircasi}" />
+                                                                                    <Setter Property="Background" Value="Transparent" />
+                                                                                </MultiDataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Button.Style>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock FontSize="12" Margin="0,0,5,0"><TextBlock.Style><Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="☐" />
+                                                                            <Style.Triggers><DataTrigger Binding="{Binding Uye}" Value="True"><Setter Property="Text" Value="☑" /></DataTrigger></Style.Triggers>
+                                                                        </Style></TextBlock.Style></TextBlock>
+                                                                        <TextBlock Text="{Binding Ad}" FontSize="12" />
+                                                                    </StackPanel>
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock DockPanel.Dock="Top" Text="{Binding YetkiBasligi}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" Margin="0,0,0,4" />
+                                                    <DataGrid AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" ItemsSource="{Binding Yetkiler}"
+                                                              FontFamily="Segoe UI" FontSize="12.5" AutomationProperties.AutomationId="GuvYetkiGrid">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn Header="Sınıf" Binding="{Binding Sinif}" Width="90" />
+                                                            <DataGridTextColumn Header="Nesne" Binding="{Binding Nesne}" Width="1.4*" />
+                                                            <DataGridTextColumn Header="İzin" Binding="{Binding Izin}" Width="1*" />
+                                                            <DataGridTemplateColumn Header="Durum" Width="140">
+                                                                <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                                                    <Border Style="{StaticResource SonucRozeti}" Tag="{Binding DurumTuru}" Margin="2,1" HorizontalAlignment="Left"><TextBlock Text="{Binding Durum}" FontSize="11.5" /></Border>
+                                                                </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                                            </DataGridTemplateColumn>
+                                                            <DataGridTextColumn Header="Veren" Binding="{Binding Veren}" Width="110" />
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </DockPanel>
+                                                <DockPanel Grid.Column="2" Visibility="{Binding LoginSecili, Converter={StaticResource BoolGorunurluk}}">
+                                                    <TextBlock DockPanel.Dock="Top" Text="VERİTABANI EŞLEMELERİ — BU LOGIN HANGİ DB'DE HANGİ KULLANICI" FontSize="10.5" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource SolukMetinFircasi}" Margin="0,0,0,4" />
+                                                    <TextBlock DockPanel.Dock="Bottom" Text="DENY her yetkiyi ezer; kırmızı rozetler kullanıcının yapamadıklarıdır. Kullanıcı rollerini düzenlemek için Kullanıcılar görünümünde o DB'yi seçin."
+                                                               FontSize="11.5" Foreground="{DynamicResource SolukMetinFircasi}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                                    <DataGrid AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" ItemsSource="{Binding Eslemeler}"
+                                                              FontFamily="Segoe UI" FontSize="12.5" AutomationProperties.AutomationId="GuvEslemeGrid">
+                                                        <DataGrid.RowStyle>
+                                                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding KullaniciVar}" Value="False"><Setter Property="Foreground" Value="{DynamicResource ZayifMetinFircasi}" /></DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </DataGrid.RowStyle>
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn Header="Veritabanı" Binding="{Binding Veritabani}" Width="1*" />
+                                                            <DataGridTextColumn Header="Kullanıcı" Binding="{Binding KullaniciMetni}" Width="1*" />
+                                                            <DataGridTextColumn Header="DB rolleri" Binding="{Binding Roller}" Width="1.6*" />
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </DockPanel>
+                                                <Border Grid.Column="2" Visibility="{Binding KullaniciSecili, Converter={StaticResource BoolGorunurluk}}" Padding="10"
+                                                        BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" CornerRadius="4">
+                                                    <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource SolukMetinFircasi}"
+                                                               Text="Kimlik: INSTANCE = login'e bağlı · NONE = login'siz (yetim ya da bilerek) · DATABASE = contained (Azure) · WINDOWS. Yetim kullanıcı giriş yapamaz — aynı adlı login varsa 🔗 Login'e bağla; yoksa S2'de yeni login. Nesne/şema yetkilerini düzenleme (GRANT / DENY / REVOKE ızgarası) S2." />
+                                                </Border>
+                                            </Grid>
+                                        </DockPanel>
+                                    </Grid>
+                                </DockPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                        <!-- 📈 QUERY STORE sekmesi (v23-S28 — mockup docs/mockup/query-store.html ONAYLI): durum bandı ·
+                             görünüm/metrik/istatistik/pencere çipleri · sorgu listesi · seçili sorgunun SQL'i + planları + çubuk. -->
+                        <DataTemplate DataType="{x:Type vm:QueryStoreSekmesiViewModel}">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Bottom" Background="{DynamicResource DurumCubuguZeminFircasi}" Padding="12,4">
+                                    <DockPanel TextElement.Foreground="{DynamicResource DurumCubuguMetinFircasi}" TextElement.FontSize="11.5">
+                                        <TextBlock Text="{Binding SonYenileme}" DockPanel.Dock="Right" Margin="18,0,0,0" />
+                                        <TextBlock Text="{Binding Bilgi}" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="LblQsBilgi" />
+                                    </DockPanel>
+                                </Border>
+                                <DockPanel Margin="14,10,14,8">
+                                    <!-- Üst: durum rozeti + meta + yenile / flush -->
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                        <Border Style="{StaticResource SonucRozeti}" Tag="{Binding DurumTuru}" CornerRadius="11" Padding="11,3" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DurumRozeti}" FontSize="12" AutomationProperties.AutomationId="LblQsDurum" />
+                                        </Border>
+                                        <Button DockPanel.Dock="Right" Content="⟳ Yenile" Padding="10,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                Command="{Binding YenileCommand}" AutomationProperties.AutomationId="BtnQsYenile" />
+                                        <Button DockPanel.Dock="Right" Content="💾 Belleği yaz" Padding="10,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                Command="{Binding FlushCommand}" IsEnabled="{Binding FlushAcik}"
+                                                ToolTip="Bellekteki istatistiği diske yazar (sp_query_store_flush_db) — liste tazelenir"
+                                                AutomationProperties.AutomationId="BtnQsFlush" />
+                                        <TextBlock Text="{Binding DurumMeta}" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12"
+                                                   Foreground="{DynamicResource SolukMetinFircasi}" TextTrimming="CharacterEllipsis"
+                                                   AutomationProperties.AutomationId="LblQsMeta" />
+                                    </DockPanel>
+                                    <!-- Bant: kapalı / salt-okunur / sürüm / izin -->
+                                    <Border DockPanel.Dock="Top" Margin="0,0,0,8" Padding="12,8" CornerRadius="6" BorderThickness="1"
+                                            Background="{DynamicResource UyariZeminFircasi}" BorderBrush="{DynamicResource UyariKenarFircasi}"
+                                            Visibility="{Binding UyariVar, Converter={StaticResource BoolGorunurluk}}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center"
+                                                        Visibility="{Binding AcilebilirMi, Converter={StaticResource BoolGorunurluk}}">
+                                                <Button Content="📄 Script olarak al" Padding="10,3" Margin="0,0,6,0" Command="{Binding AcScriptiAlCommand}"
+                                                        AutomationProperties.AutomationId="BtnQsAcScript" />
+                                                <Button Content="▶ Query Store'u aç" Padding="12,3" Style="{StaticResource BirincilDugme}"
+                                                        Command="{Binding AcCommand}" AutomationProperties.AutomationId="BtnQsAc" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Uyari}" TextWrapping="Wrap" FontSize="12.5" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource UyariMetinFircasi}" AutomationProperties.AutomationId="LblQsUyari" />
+                                        </DockPanel>
+                                    </Border>
+                                    <!-- Çipler -->
+                                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8" TextElement.FontSize="12">
+                                        <TextBlock Text="GÖRÜNÜM" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                        <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding GorunumEnPahali}" Content="🔥 En pahalı" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsEnPahali" />
+                                        <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding GorunumGerileyen}" Content="📉 Gerileyen" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsGerileyen" />
+                                        <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding GorunumZorlanmis}" Content="📌 Zorlanmış planlar" Margin="0,0,14,6" AutomationProperties.AutomationId="CipQsZorlanmis" />
+                                        <StackPanel Orientation="Horizontal" IsEnabled="{Binding MetrikSecilebilir}">
+                                            <TextBlock Text="METRİK" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding MetrikSure}" Content="Süre" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsSure" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding MetrikCpu}" Content="CPU" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsCpu" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding MetrikOkuma}" Content="Okuma" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsOkuma" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding MetrikYurutme}" Content="Yürütme" Margin="0,0,14,6" AutomationProperties.AutomationId="CipQsYurutme" />
+                                            <TextBlock Text="İSTATİSTİK" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding IstatistikToplam}" Content="Toplam" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsToplam" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding IstatistikOrtalama}" Content="Ortalama" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsOrtalama" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding IstatistikEnYuksek}" Content="En yüksek" Margin="0,0,14,6" AutomationProperties.AutomationId="CipQsEnYuksek" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" IsEnabled="{Binding PencereSecilebilir}">
+                                            <TextBlock Text="PENCERE" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource SolukMetinFircasi}" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding PencereSaat1}" Content="1 sa" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsSaat1" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding PencereSaat24}" Content="24 sa" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsSaat24" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding PencereGun7}" Content="7 gün" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsGun7" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding PencereGun30}" Content="30 gün" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsGun30" />
+                                            <RadioButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding PencereTumu}" Content="Tümü" Margin="0,0,6,6" AutomationProperties.AutomationId="CipQsTumu" />
+                                        </StackPanel>
+                                    </WrapPanel>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="1*" MinHeight="120" />
+                                            <RowDefinition Height="6" />
+                                            <RowDefinition Height="1*" MinHeight="160" />
+                                        </Grid.RowDefinitions>
+                                        <DockPanel Grid.Row="0">
+                                            <TextBlock DockPanel.Dock="Bottom" Text="{Binding ListeNotu}" FontSize="11.5" Margin="0,4,0,0"
+                                                       Foreground="{DynamicResource SolukMetinFircasi}" AutomationProperties.AutomationId="LblQsListeNotu" />
+                                            <DataGrid AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column"
+                                                      EnableRowVirtualization="True" SelectionMode="Single" ItemsSource="{Binding Sorgular}"
+                                                      SelectedItem="{Binding SeciliSorgu}" FontFamily="Segoe UI" FontSize="12.5"
+                                                      AutomationProperties.AutomationId="QsSorguGrid">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="#" Binding="{Binding QueryId}" Width="60" />
+                                                    <DataGridTextColumn Header="Sorgu" Binding="{Binding Kisa}" Width="3*" FontFamily="Consolas" />
+                                                    <DataGridTextColumn Header="Nesne" Binding="{Binding Nesne}" Width="1.2*" />
+                                                    <DataGridTextColumn Header="Yürütme" Binding="{Binding YurutmeMetni}" Width="90" />
+                                                    <DataGridTextColumn Header="Toplam süre" Binding="{Binding ToplamMetni}" Width="110" />
+                                                    <DataGridTextColumn Header="Ortalama" Binding="{Binding OrtMetni}" Width="90" />
+                                                    <DataGridTextColumn Header="CPU" Binding="{Binding CpuMetni}" Width="100" />
+                                                    <DataGridTextColumn Header="Okuma" Binding="{Binding OkumaMetni}" Width="100" />
+                                                    <DataGridTextColumn Header="Plan" Binding="{Binding PlanSayisi}" Width="50" />
+                                                    <DataGridTemplateColumn Header="" Width="130">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <Border Style="{StaticResource SonucRozeti}" Tag="{Binding RozetTuru}" Margin="2,1"
+                                                                        Visibility="{Binding RozetMetni, Converter={StaticResource DegerVarsaGorunur}}">
+                                                                    <TextBlock Text="{Binding RozetMetni}" FontSize="11.5" />
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </DockPanel>
+                                        <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Height="6" Background="{DynamicResource SeritFircasi}" />
+                                        <TextBlock Grid.Row="2" Text="Ayrıntı için listeden bir sorgu seçin." HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource SolukMetinFircasi}"
+                                                   Visibility="{Binding SorguSecili, Converter={StaticResource TersBoolGorunurluk}}" />
+                                        <DockPanel Grid.Row="2" Margin="0,8,0,0" Visibility="{Binding SorguSecili, Converter={StaticResource BoolGorunurluk}}">
+                                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <Button Content="📄 Sorguyu sekmede aç" Padding="10,4" Margin="0,0,6,0" Command="{Binding SorguyuAcCommand}"
+                                                            AutomationProperties.AutomationId="BtnQsSorguAc" />
+                                                    <Button Content="{Binding PlaniAcMetni}" Padding="10,4" Margin="0,0,6,0" Command="{Binding PlaniAcCommand}"
+                                                            IsEnabled="{Binding PlanSecili}" ToolTip="Seçili planı Plan sekmesinde açar (Query Store XML'i)"
+                                                            AutomationProperties.AutomationId="BtnQsPlanAc" />
+                                                    <Button Content="{Binding ZorlaMetni}" Padding="12,4" Margin="0,0,6,0" Style="{StaticResource BirincilDugme}"
+                                                            Command="{Binding ZorlaCommand}" IsEnabled="{Binding ZorlaAcik}"
+                                                            ToolTip="sp_query_store_force_plan — onay ister, geri alınabilir" AutomationProperties.AutomationId="BtnQsZorla" />
+                                                    <Button Content="✕ Zorlamayı kaldır" Padding="10,4" Margin="0,0,6,0" Command="{Binding ZorlamayiKaldirCommand}"
+                                                            IsEnabled="{Binding KaldirAcik}" AutomationProperties.AutomationId="BtnQsKaldir" />
+                                                    <Button Content="📜 Script" Padding="10,4" Command="{Binding ZorlaScriptiAlCommand}" IsEnabled="{Binding PlanSecili}"
+                                                            ToolTip="Zorlama/kaldırma script'ini sekmede açar (çalıştırmaz)" AutomationProperties.AutomationId="BtnQsZorlaScript" />
+                                                </StackPanel>
+                                                <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                                    <Run Text="{Binding SeciliBaslik, Mode=OneWay}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource MetinFircasi}" />
+                                                </TextBlock>
+                                                <Border Style="{StaticResource SonucRozeti}" Tag="{Binding SeciliRozetTuru}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                        HorizontalAlignment="Left" Visibility="{Binding SeciliRozet, Converter={StaticResource DegerVarsaGorunur}}">
+                                                    <TextBlock Text="{Binding SeciliRozet}" FontSize="11.5" AutomationProperties.AutomationId="LblQsSeciliRozet" />
+                                                </Border>
+                                            </DockPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1*" />
+                                                    <ColumnDefinition Width="14" />
+                                                    <ColumnDefinition Width="1.3*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0" Text="{Binding SeciliSql, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas"
+                                                         FontSize="12" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" Padding="8,6"
+                                                         Background="{DynamicResource PanelZeminFircasi}" AutomationProperties.AutomationId="TxtQsSql" />
+                                                <DockPanel Grid.Column="2">
+                                                    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1" CornerRadius="4"
+                                                            Padding="8,6" Margin="0,8,0,0" Height="150">
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Top" Text="PLAN BAŞINA ORTALAMA SÜRE (MS)" FontSize="10.5" FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource SolukMetinFircasi}" Margin="0,0,0,4" />
+                                                            <views:GrafikTuvali Model="{Binding PlanGrafigi}" AutomationProperties.AutomationId="QsPlanGrafigi" />
+                                                        </DockPanel>
+                                                    </Border>
+                                                    <DataGrid AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column"
+                                                              SelectionMode="Single" ItemsSource="{Binding Planlar}" SelectedItem="{Binding SeciliPlan}"
+                                                              FontFamily="Segoe UI" FontSize="12.5" AutomationProperties.AutomationId="QsPlanGrid">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn Header="Plan" Binding="{Binding PlanId}" Width="70" />
+                                                            <DataGridTextColumn Header="Yürütme" Binding="{Binding YurutmeMetni}" Width="90" />
+                                                            <DataGridTextColumn Header="Ortalama" Binding="{Binding OrtMetni}" Width="90" />
+                                                            <DataGridTextColumn Header="En yüksek" Binding="{Binding EnYuksekMetni}" Width="90" />
+                                                            <DataGridTextColumn Header="Son çalışma" Binding="{Binding SonCalismaMetni}" Width="130" />
+                                                            <DataGridTemplateColumn Header="Durum" Width="*">
+                                                                <DataGridTemplateColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Style="{StaticResource SonucRozeti}" Tag="{Binding DurumTuru}" Margin="2,1" HorizontalAlignment="Left">
+                                                                            <TextBlock Text="{Binding DurumMetni}" FontSize="11.5" />
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </DataGridTemplateColumn.CellTemplate>
+                                                            </DataGridTemplateColumn>
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </DockPanel>
+                                            </Grid>
+                                        </DockPanel>
+                                    </Grid>
+                                </DockPanel>
+                            </DockPanel>
+                        </DataTemplate>
                         <DataTemplate DataType="{x:Type vm:AgentSekmesiViewModel}">
                             <DockPanel>
                                 <!-- Durum çubuğu (alt) -->
@@ -3943,6 +4382,11 @@
                                                                         <!-- Rapor + Tümünü dışa aktar (sekme düzeyi eylemler) kopya/dışa-aktar
                                                                              butonlarıyla TEK SIRADA (kullanıcı isteği 2026-07-23). Bağlamalar
                                                                              tab VM'ine RelativeSource ile ulaşır (buradaki DataContext = SonucSetiGorunumu). -->
+                                                                        <!-- 📊 Grafik (v23-S24): paneli grid'in SAĞINDA açar — yalnız bu düğme açar (K8). -->
+                                                                        <Button Content="📊 Grafik" Style="{StaticResource MiniDugme}" Margin="0,0,4,0"
+                                                                                Click="GrafikAc_Click"
+                                                                                ToolTip="Bu sonucu grafiğe çevir: çubuk · yatay · çizgi · alan · pasta — X/Y kolonları ve toplama panelde (tekrar tıklayınca kapanır)"
+                                                                                AutomationProperties.AutomationId="BtnGrafik" />
                                                                         <Button Content="📄 Rapor" Style="{StaticResource MiniDugme}" Margin="0,0,4,0"
                                                                                 Click="HtmlRapor_Click"
                                                                                 ToolTip="Sekmenin son sonucunu tek HTML dosyasına aktarır: sorgu + sunucu/DB + süre + tablolar (Ö6)"
@@ -3996,6 +4440,14 @@
                                                                      (sahadaki imzanın aynısı), canlıyken 0,9 sn + 24 satır görseli. MaxHeight,
                                                                      Height NaN kalsa bile ölçümü bağlar — hangi yol bozarsa bozsun
                                                                      sanallaştırma yaşar; FallbackValue da bağlama hatasında sonlu değer verir. -->
+                                                                <!-- 📊 v23-S24: grid + (açıksa) sağda grafik paneli. Panel kolonu Auto: kapalıyken
+                                                                     Collapsed → 0 px; genişliği paneldeki tutamaç verir (GridSplitter'ın yerel değer
+                                                                     tuzağı yok). Grid yüksekliği DataGrid'in orantılı yüksekliğinden gelir. -->
+                                                                <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
                                                                 <DataGrid x:Name="SetGrid" ItemsSource="{Binding Gorunum}"
                                                                           IsReadOnly="True" AutoGenerateColumns="True"
                                                                           VerticalAlignment="Top" MaxHeight="1600"
@@ -4074,6 +4526,8 @@
                                                                         </ContextMenu>
                                                                     </DataGrid.ContextMenu>
                                                                 </DataGrid>
+                                                                <views:GrafikPaneli Grid.Column="1" />
+                                                                </Grid>
                                                             </DockPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>

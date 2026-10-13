@@ -1,0 +1,185 @@
+<Window x:Class="SQLST.App.Views.GeriYuklemePenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:SQLST.App.Converters"
+        xmlns:views="clr-namespace:SQLST.App.Views"
+        Title="{Binding PencereBasligi}" Width="1100" Height="760" MinWidth="940" MinHeight="620"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}"
+        FontFamily="Segoe UI" FontSize="12.5">
+    <!-- ⏪ Geri yükle (v23-S26 S2) — mockup docs/mockup/yedek-geri-yukle.html (2. pencere) ONAYLI.
+         Sol: kaynak (dosya/tarihçe) · setler · hedef · dosyalar (MOVE) · seçenekler · sağ: script + yetki + ilerleme. -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolGorunurluk" />
+        <conv:TersBool x:Key="TersBool" />
+        <conv:MetinVarsaGorunur x:Key="MetinVarsaGorunur" />
+        <Style x:Key="Etiket" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+            <Setter Property="Margin" Value="0,0,0,5" />
+        </Style>
+        <Style x:Key="Not" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,3,0,0" />
+        </Style>
+        <Style x:Key="Bant" TargetType="Border">
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SeritFircasi}" BorderBrush="{DynamicResource KenarFircasi}"
+                BorderThickness="0,1,0,0" Padding="14,9">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="🔍 Doğrula (VERIFYONLY)" Padding="12,5" Margin="0,0,8,0" Command="{Binding DogrulaCommand}"
+                            IsEnabled="{Binding DogrulanabilirMi}" ToolTip="Yedek setinin bütünlüğünü denetler — hiçbir şey değişmez"
+                            AutomationProperties.AutomationId="BtnGeriDogrula" />
+                    <Button Content="📄 Script olarak al" Padding="12,5" Margin="0,0,8,0" Command="{Binding ScriptiAlCommand}"
+                            AutomationProperties.AutomationId="BtnGeriScript" />
+                    <Button Content="■ İptal" Padding="12,5" Margin="0,0,8,0" Command="{Binding IptalCommand}"
+                            IsEnabled="{Binding Calisiyor}" AutomationProperties.AutomationId="BtnGeriIptal" />
+                    <Button Content="Vazgeç" Padding="12,5" Margin="0,0,8,0" Click="Kapat_Click" AutomationProperties.AutomationId="BtnGeriKapat" />
+                    <Button Content="⏪ Geri yükle" Padding="14,5" FontWeight="SemiBold" Command="{Binding GeriYukleCommand}"
+                            IsEnabled="{Binding GeriYuklenebilirMi}" Foreground="White"
+                            Background="{x:Static views:IletisimKutusu.TehlikeDolgusu}" BorderBrush="{x:Static views:IletisimKutusu.TehlikeDolgusu}"
+                            AutomationProperties.AutomationId="BtnGeriYukle" />
+                </StackPanel>
+                <TextBlock Text="{Binding Durum}" VerticalAlignment="Center" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{DynamicResource SolukMetinFircasi}" AutomationProperties.AutomationId="LblGeriDurum" />
+            </DockPanel>
+        </Border>
+
+        <Grid Margin="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="600" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <StackPanel IsEnabled="{Binding Calisiyor, Converter={StaticResource TersBool}}">
+                    <TextBlock Text="{Binding SunucuOzeti}" FontSize="11.5" Foreground="{DynamicResource SolukMetinFircasi}" Margin="0,0,0,8" />
+
+                    <TextBlock Text="KAYNAK" Style="{StaticResource Etiket}" />
+                    <TabControl Margin="0,0,0,10" AutomationProperties.AutomationId="SekmeGeriKaynak">
+                        <TabItem Header="Dosya">
+                            <StackPanel Margin="0,8,0,4">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="🔎 Oku" Padding="9,3" Margin="6,0,0,0" Command="{Binding OkuCommand}"
+                                            ToolTip="Dosyadaki yedek setlerini listeler (RESTORE HEADERONLY)" AutomationProperties.AutomationId="BtnGeriOku" />
+                                    <Button DockPanel.Dock="Right" Content="📂 Sunucuda seç…" Padding="9,3" Margin="6,0,0,0" Click="SunucudaSec_Click"
+                                            AutomationProperties.AutomationId="BtnGeriKlasor" />
+                                    <TextBox Text="{Binding Dosya, UpdateSourceTrigger=PropertyChanged}" Padding="6,3" FontFamily="Consolas"
+                                             AutomationProperties.AutomationId="TxtGeriDosya" />
+                                </DockPanel>
+                                <TextBlock Text="{Binding SetNotu}" Style="{StaticResource Not}" AutomationProperties.AutomationId="LblGeriSetNotu" />
+                            </StackPanel>
+                        </TabItem>
+                        <TabItem Header="Tarihçeden (msdb)">
+                            <DataGrid ItemsSource="{Binding Tarihce}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                                      MaxHeight="170" Margin="0,8,0,4" SelectionMode="Single" MouseDoubleClick="Tarihce_CiftTik"
+                                      CanUserSortColumns="False" AutomationProperties.AutomationId="GridGeriTarihce">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Veritabanı" Binding="{Binding Veritabani}" />
+                                    <DataGridTextColumn Header="Tarih" Binding="{Binding Tarih}" />
+                                    <DataGridTextColumn Header="Tür" Binding="{Binding Tur}" />
+                                    <DataGridTextColumn Header="Boyut" Binding="{Binding Boyut}" />
+                                    <DataGridTextColumn Header="Dosya" Binding="{Binding Dosya}" Width="240" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                    </TabControl>
+
+                    <TextBlock Text="YEDEK SETLERİ" Style="{StaticResource Etiket}" />
+                    <DataGrid ItemsSource="{Binding Setler}" SelectedItem="{Binding SeciliSet}" AutoGenerateColumns="False" IsReadOnly="True"
+                              HeadersVisibility="Column" MaxHeight="150" SelectionMode="Single" CanUserSortColumns="False"
+                              AutomationProperties.AutomationId="GridGeriSetler">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Konum}" />
+                            <DataGridTextColumn Header="Tür" Binding="{Binding Tur}" />
+                            <DataGridTextColumn Header="Veritabanı" Binding="{Binding Veritabani}" />
+                            <DataGridTextColumn Header="Bitiş" Binding="{Binding Bitis}" />
+                            <DataGridTextColumn Header="Boyut" Binding="{Binding Boyut}" />
+                            <DataGridTextColumn Header="Sunucu sürümü" Binding="{Binding Surum}" />
+                            <DataGridTextColumn Header="Not" Binding="{Binding Not}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="{Binding ZincirNotu}" Style="{StaticResource Not}" Margin="0,3,0,10" AutomationProperties.AutomationId="LblGeriZincir" />
+
+                    <TextBlock Text="HEDEF" Style="{StaticResource Etiket}" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="VERİTABANI ADI" Style="{StaticResource Etiket}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding HedefDb, UpdateSourceTrigger=PropertyChanged}" Padding="6,3" AutomationProperties.AutomationId="TxtGeriHedef" />
+                    </DockPanel>
+                    <Border Style="{StaticResource Bant}" Background="{DynamicResource BilgiZeminFircasi}"
+                            Visibility="{Binding HedefNotu, Converter={StaticResource MetinVarsaGorunur}}">
+                        <TextBlock Text="{Binding HedefNotu}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                                   AutomationProperties.AutomationId="LblGeriHedefNotu" />
+                    </Border>
+
+                    <TextBlock Text="DOSYALAR (RESTORE FILELISTONLY → MOVE)" Style="{StaticResource Etiket}" Margin="0,10,0,5" />
+                    <DataGrid ItemsSource="{Binding Dosyalar}" AutoGenerateColumns="False" HeadersVisibility="Column" MaxHeight="140"
+                              CanUserSortColumns="False" CanUserAddRows="False" AutomationProperties.AutomationId="GridGeriDosyalar">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mantıksal ad" Binding="{Binding Mantiksal}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Tür" Binding="{Binding Tur}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Hedef yol (sunucuda — düzenlenebilir)" Binding="{Binding Hedef, UpdateSourceTrigger=PropertyChanged}" Width="*"
+                                                FontFamily="Consolas" />
+                            <DataGridTextColumn Header="Boyut" Binding="{Binding Boyut}" IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="SEÇENEKLER" Style="{StaticResource Etiket}" Margin="0,10,0,5" />
+                    <WrapPanel>
+                        <CheckBox Content="Mevcut veritabanının üzerine yaz (REPLACE)" IsChecked="{Binding Replace}" Margin="0,0,14,6"
+                                  AutomationProperties.AutomationId="ChkGeriReplace" />
+                        <CheckBox Content="Açık bağlantıları kes" IsChecked="{Binding BaglantilariKes}" Margin="0,0,14,6"
+                                  ToolTip="ALTER DATABASE … SET SINGLE_USER WITH ROLLBACK IMMEDIATE; bitince MULTI_USER"
+                                  AutomationProperties.AutomationId="ChkGeriKes" />
+                        <CheckBox Content="Geri yüklemede bırak (NORECOVERY — fark/günlük devam edecek)" IsChecked="{Binding NoRecovery}" Margin="0,0,0,6"
+                                  AutomationProperties.AutomationId="ChkGeriNoRecovery" />
+                    </WrapPanel>
+                    <Border Style="{StaticResource Bant}" Background="{DynamicResource UyariZeminFircasi}" BorderBrush="{DynamicResource UyariKenarFircasi}" BorderThickness="1">
+                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource UyariMetinFircasi}"
+                                   Text="⚠ Geri yükleme geri alınamaz. Üzerine yazma seçilirse hedef veritabanındaki her şey silinir — başlatmadan önce kırmızı onay istenir." />
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Text="SCRIPT (CANLI ÖNİZLEME)" Style="{StaticResource Etiket}" />
+                <Border DockPanel.Dock="Top" Background="{DynamicResource UyariZeminFircasi}" BorderBrush="{DynamicResource UyariKenarFircasi}"
+                        BorderThickness="1" CornerRadius="3" Padding="8,5" Margin="0,0,0,8"
+                        Visibility="{Binding Engel, Converter={StaticResource MetinVarsaGorunur}}">
+                    <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource UyariMetinFircasi}"
+                               AutomationProperties.AutomationId="LblGeriEngel"><Run Text="⚠ " /><Run Text="{Binding Engel, Mode=OneWay}" /></TextBlock>
+                </Border>
+                <Border DockPanel.Dock="Bottom" Background="{DynamicResource BilgiZeminFircasi}" CornerRadius="3" Padding="8,5" Margin="0,8,0,0"
+                        Visibility="{Binding YetkiNotu, Converter={StaticResource MetinVarsaGorunur}}">
+                    <TextBlock Text="{Binding YetkiNotu}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource BilgiMetinFircasi}"
+                               AutomationProperties.AutomationId="LblGeriYetki" />
+                </Border>
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0" Visibility="{Binding IlerlemeGorunur, Converter={StaticResource BoolGorunurluk}}">
+                    <ProgressBar Height="10" Minimum="0" Maximum="100" Value="{Binding Yuzde, Mode=OneWay}" Foreground="{DynamicResource VurguFircasi}"
+                                 AutomationProperties.AutomationId="PbGeri" />
+                    <TextBlock Text="{Binding IlerlemeMetni}" FontSize="11.5" Margin="0,4,0,0" Foreground="{DynamicResource SolukMetinFircasi}"
+                               AutomationProperties.AutomationId="LblGeriIlerleme" />
+                    <TextBox Text="{Binding Log, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11.5" MaxHeight="120"
+                             VerticalScrollBarVisibility="Auto" Margin="0,6,0,0" Padding="6,4" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                             Visibility="{Binding Log, Converter={StaticResource MetinVarsaGorunur}}" Foreground="{DynamicResource SolukMetinFircasi}"
+                             AutomationProperties.AutomationId="TxtGeriLog" />
+                </StackPanel>
+                <TextBox Text="{Binding Script, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="12" Padding="10,8"
+                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalAlignment="Stretch" VerticalContentAlignment="Top"
+                         Background="{DynamicResource EditorZeminFircasi}" Foreground="{DynamicResource EditorMetinFircasi}"
+                         AutomationProperties.AutomationId="TxtGeriScript" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

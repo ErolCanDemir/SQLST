@@ -15,9 +15,12 @@ public static class HtmlRaporYazici
     /// <summary>Rapor başına satır tavanı — tarayıcıyı boğmamak için (aşımda dürüst not düşülür).</summary>
     public const int SatirTavani = 1000;
 
+    /// <param name="grafikler">📊 v23-S24 S2: set sırası → PNG (base64). Açık grafik paneli olan setlerin
+    /// grafiği tablonun ÜSTÜNE gömülür ("rapora dönüştür"); yoksa rapor eskisi gibi.</param>
     public static string Yaz(
         string sunucu, string? veritabani, string sql, string sureMetni,
-        IReadOnlyList<(string Baslik, DataTable Tablo)> setler, DateTime zaman)
+        IReadOnlyList<(string Baslik, DataTable Tablo)> setler, DateTime zaman,
+        IReadOnlyDictionary<int, string>? grafikler = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html lang=\"tr\"><head><meta charset=\"utf-8\">");
@@ -39,6 +42,7 @@ public static class HtmlRaporYazici
             .not { color: #8D6E00; background: #FFF8E1; padding: 6px 10px; border-radius: 4px; font-size: 12px; }
             h2 { font-size: 15px; color: #1B7A70; margin-bottom: 2px; }
             .altbilgi { color: #999; font-size: 11px; margin-top: 30px; }
+            img.grafik { display: block; max-width: 100%; border: 1px solid #DDD; border-radius: 4px; margin: 8px 0 14px; }
             </style></head><body>
             """);
         sb.AppendLine($"<div class=\"baslik\"><h1>SQLST sorgu raporu</h1></div>");
@@ -46,9 +50,12 @@ public static class HtmlRaporYazici
             + $"<span>🕘 {zaman:dd.MM.yyyy HH:mm:ss}</span><span>⏱ {K(sureMetni)}</span></div>");
         sb.AppendLine($"<h2>Sorgu</h2><pre class=\"sql\">{K(sql)}</pre>");
 
-        foreach ((string baslik, DataTable tablo) in setler)
+        for (int s = 0; s < setler.Count; s++)
         {
+            (string baslik, DataTable tablo) = setler[s];
             sb.AppendLine($"<h2>{K(baslik)}</h2>");
+            if (grafikler is not null && grafikler.TryGetValue(s, out string? png) && png.Length > 0)
+                sb.AppendLine($"<img class=\"grafik\" alt=\"Grafik — {K(baslik)}\" src=\"data:image/png;base64,{png}\">");
             int satirSayisi = Math.Min(tablo.Rows.Count, SatirTavani);
             if (tablo.Rows.Count > SatirTavani)
                 sb.AppendLine($"<div class=\"not\">İlk {SatirTavani:N0} satır gösteriliyor (toplam {tablo.Rows.Count:N0}).</div>");

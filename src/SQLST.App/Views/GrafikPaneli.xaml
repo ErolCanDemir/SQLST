@@ -1,0 +1,155 @@
+<UserControl x:Class="SQLST.App.Views.GrafikPaneli"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:SQLST.App.Converters"
+             xmlns:views="clr-namespace:SQLST.App.Views"
+             Width="{Binding GrafikGenisligi}"
+             Visibility="{Binding GrafikAcik, Converter={StaticResource BoolGorunurluk}}"
+             AutomationProperties.AutomationId="GrafikPaneli">
+    <!-- 📊 Sonuçtan grafik paneli (v23-S24 S1 — docs/12-grafik-arastirma.md, mockup docs/mockup/sonuc-grafik.html).
+         DataContext = SonucSetiGorunumu; seçimler Grafik (GrafikPaneliViewModel) üzerinde. Grid'in SAĞINDA (K1),
+         yalnız 📊 düğmesiyle açılır (K8); sol kenardaki tutamaçla genişler. Çizim GrafikTuvali (elle, K2). -->
+    <UserControl.Resources>
+        <conv:EnumEsit x:Key="EnumEsit" />
+        <conv:SeriRengi x:Key="SeriRengi" />
+        <conv:MetinVarsaGorunur x:Key="MetinVarsaGorunur" />
+        <conv:GizliOpaklik x:Key="GizliOpaklik" />
+        <BooleanToVisibilityConverter x:Key="BoolGorunurluk" />
+        <Style x:Key="Etiket" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource SolukMetinFircasi}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="6,0,4,0" />
+        </Style>
+        <!-- Tür çipi: SuzgecCipi görünümü, RadioButton davranışı (biri hep seçili; GroupName YOK — aynı panel içinde gruplanır) -->
+        <Style x:Key="TurCipi" TargetType="RadioButton" BasedOn="{StaticResource SuzgecCipi}" />
+    </UserControl.Resources>
+
+    <DockPanel Background="{DynamicResource PencereZeminFircasi}">
+        <!-- sol tutamaç: genişlik ayarı -->
+        <Thumb DockPanel.Dock="Left" Width="6" Cursor="SizeWE" DragDelta="Ayirici_DragDelta"
+               AutomationProperties.AutomationId="GrafikAyirici">
+            <Thumb.Template>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="{DynamicResource PanelZeminFircasi}"
+                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1,0,1,0" />
+                </ControlTemplate>
+            </Thumb.Template>
+        </Thumb>
+
+        <!-- üst: tür çipleri + PNG + kapat -->
+        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="0,0,0,1" Padding="8,6">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="⧉ PNG" Style="{StaticResource MiniDugme}" Margin="0,0,4,0" Click="PngKopyala_Click"
+                            ToolTip="Grafiği görüntü olarak panoya kopyalar (e-postaya / Word'e yapıştırın)"
+                            AutomationProperties.AutomationId="BtnGrafikPngKopyala" />
+                    <Button Content="↓ PNG" Style="{StaticResource MiniDugme}" Margin="0,0,4,0" Click="PngKaydet_Click"
+                            ToolTip="Grafiği PNG dosyasına kaydeder"
+                            AutomationProperties.AutomationId="BtnGrafikPngKaydet" />
+                    <Button Content="✕" Style="{StaticResource MiniDugme}" Click="Kapat_Click" ToolTip="Grafik panelini kapat"
+                            AutomationProperties.AutomationId="BtnGrafikKapat" />
+                </StackPanel>
+                <WrapPanel VerticalAlignment="Center">
+                    <RadioButton Content="▮ Çubuk" Style="{StaticResource TurCipi}" AutomationProperties.AutomationId="CipCubuk"
+                                 IsChecked="{Binding Grafik.Tur, Converter={StaticResource EnumEsit}, ConverterParameter=Cubuk}" />
+                    <RadioButton Content="▬ Yatay" Style="{StaticResource TurCipi}" AutomationProperties.AutomationId="CipYatay"
+                                 IsChecked="{Binding Grafik.Tur, Converter={StaticResource EnumEsit}, ConverterParameter=YatayCubuk}" />
+                    <RadioButton Content="⟋ Çizgi" Style="{StaticResource TurCipi}" AutomationProperties.AutomationId="CipCizgi"
+                                 IsChecked="{Binding Grafik.Tur, Converter={StaticResource EnumEsit}, ConverterParameter=Cizgi}" />
+                    <RadioButton Content="◢ Alan" Style="{StaticResource TurCipi}" AutomationProperties.AutomationId="CipAlan"
+                                 IsChecked="{Binding Grafik.Tur, Converter={StaticResource EnumEsit}, ConverterParameter=Alan}" />
+                    <RadioButton Content="◔ Pasta" Style="{StaticResource TurCipi}" AutomationProperties.AutomationId="CipPasta"
+                                 IsChecked="{Binding Grafik.Tur, Converter={StaticResource EnumEsit}, ConverterParameter=Pasta}" />
+                    <!-- S2: yığılmış — yalnız çubuk/yatay + çoklu seride -->
+                    <ToggleButton Content="≡ Yığılmış" Style="{StaticResource SuzgecCipi}" Margin="8,0,0,0"
+                                  IsChecked="{Binding Grafik.Yigilmis}" ToolTip="Serileri üst üste yığ (toplamı gösterir)"
+                                  Visibility="{Binding Grafik.YigilmisSecilebilir, Converter={StaticResource BoolGorunurluk}}"
+                                  AutomationProperties.AutomationId="CipYigilmis" />
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ayarlar: X · Seri · Y çipleri · Toplama -->
+        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="0,0,0,1" Padding="4,5">
+            <WrapPanel>
+                <TextBlock Text="X" Style="{StaticResource Etiket}" />
+                <ComboBox MinWidth="110" ItemsSource="{Binding Grafik.Kolonlar}" SelectedItem="{Binding Grafik.XKolon}"
+                          ToolTip="Kategori ekseni (metin, tarih ya da sayı)" AutomationProperties.AutomationId="CmbGrafikX" />
+                <TextBlock Text="SERİ" Style="{StaticResource Etiket}" />
+                <ComboBox MinWidth="90" ItemsSource="{Binding Grafik.SeriSecenekleri}" SelectedItem="{Binding Grafik.SeriKolon}"
+                          ToolTip="İsteğe bağlı: bu kolonun her değeri ayrı seri olur (ör. Yıl) — Y tek kolon kalır"
+                          AutomationProperties.AutomationId="CmbGrafikSeri" />
+                <TextBlock Text="Y" Style="{StaticResource Etiket}" />
+                <ItemsControl ItemsSource="{Binding Grafik.YSecimleri}" VerticalAlignment="Center"
+                              AutomationProperties.AutomationId="ListeGrafikY">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ToggleButton Style="{StaticResource SuzgecCipi}" IsChecked="{Binding Secili}" Margin="0,1,4,1"
+                                          ToolTip="Değer kolonu — birden fazla seçilebilir">
+                                <StackPanel Orientation="Horizontal">
+                                    <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2" Margin="0,0,5,0" VerticalAlignment="Center"
+                                               Fill="{Binding RenkIndeksi, Converter={StaticResource SeriRengi}}" />
+                                    <TextBlock Text="{Binding Ad}" />
+                                </StackPanel>
+                            </ToggleButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="TOPLAMA" Style="{StaticResource Etiket}" />
+                <ComboBox MinWidth="90" ItemsSource="{x:Static views:GrafikPaneli.ToplamaSecenekleri}" SelectedItem="{Binding Grafik.Toplama}"
+                          ToolTip="Aynı kategori birden fazla satırda geçiyorsa değerler nasıl birleşsin (GROUP BY yazmadan)"
+                          AutomationProperties.AutomationId="CmbGrafikToplama" />
+            </WrapPanel>
+        </Border>
+
+        <!-- alt: dürüst bant (tavan/indirgeme) + özet -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource UyariZeminFircasi}" BorderBrush="{DynamicResource UyariKenarFircasi}"
+                BorderThickness="0,1,0,0" Padding="8,4"
+                Visibility="{Binding Grafik.Uyari, Converter={StaticResource MetinVarsaGorunur}}">
+            <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource UyariMetinFircasi}"
+                       AutomationProperties.AutomationId="LblGrafikUyari"><Run Text="⚠ " /><Run Text="{Binding Grafik.Uyari, Mode=OneWay}" /></TextBlock>
+        </Border>
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="0,1,0,0" Padding="8,3">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Grafik.Durum}" FontSize="11" Foreground="{DynamicResource BilgiMetinFircasi}"
+                           AutomationProperties.AutomationId="LblGrafikDurum" />
+                <TextBlock Text="{Binding Grafik.Ozet}" FontSize="11" Foreground="{DynamicResource SolukMetinFircasi}"
+                           AutomationProperties.AutomationId="LblGrafikOzet" />
+            </DockPanel>
+        </Border>
+
+        <!-- gövde: tuval + açıklama (PNG bu Border'dan alınır) -->
+        <Border x:Name="GrafikGovde" Background="{DynamicResource PencereZeminFircasi}" Padding="6">
+            <DockPanel>
+                <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Grafik.Aciklama}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                              AutomationProperties.AutomationId="ListeGrafikAciklama">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!-- S2: tıklayınca seri/dilim gizlenir (soluk), tekrar tıklayınca gelir -->
+                            <Border Margin="5,1" Padding="3,1" Cursor="Hand" Background="Transparent"
+                                    Opacity="{Binding Gizli, Converter={StaticResource GizliOpaklik}}"
+                                    MouseLeftButtonUp="Aciklama_Tik" ToolTip="Gizle / göster">
+                                <StackPanel Orientation="Horizontal">
+                                    <Rectangle Width="11" Height="11" RadiusX="2" RadiusY="2" Margin="0,0,5,0" VerticalAlignment="Center"
+                                               Fill="{Binding RenkIndeksi, Converter={StaticResource SeriRengi}}" />
+                                    <TextBlock Text="{Binding Ad}" FontSize="11.5" Foreground="{DynamicResource MetinFircasi}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <views:GrafikTuvali x:Name="Tuval" Model="{Binding Grafik.Model}" SizeChanged="Tuval_SizeChanged"
+                                    Tiklandi="Tuval_Tiklandi"
+                                    AutomationProperties.AutomationId="GrafikTuvali" />
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

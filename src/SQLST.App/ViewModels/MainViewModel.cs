@@ -560,6 +560,60 @@ public partial class MainViewModel : ObservableObject
     /// <summary>FTS S4 yönetim onayı (doldurma/izleme/katalog) — MainWindow MessageBox ile bağlar.</summary>
     public Func<OnayIstegi, bool>? FtsOnayiIste { get; set; }
 
+    /// <summary>🔐 Güvenlik sekmesi (v23-S29, K1): sunucu düzeyi tek örnek; yalnız MSSQL.</summary>
+    public void GuvenlikAc()
+    {
+        if (_profil is null || !MotorMssqlMu)
+            return;
+        if (Sekmeler.OfType<GuvenlikSekmesiViewModel>().FirstOrDefault() is { } acik)
+        {
+            SeciliSekme = acik;
+            return;
+        }
+        var sekme = new GuvenlikSekmesiViewModel(_profil.Ad, SunucuKomutuAsync, (baslik, sql, db) => SekmeAc(baslik, sql, db),
+            mesaj => GuvenlikOnayiIste?.Invoke(mesaj) ?? false, _profil.SaltOkunur);
+        Sekmeler.Add(sekme);
+        SeciliSekme = sekme;
+        _ = sekme.YenileAsync();
+    }
+
+    /// <summary>Güvenlik onayı (rol / aç-kapat / kullanıcı / yetim) — MainWindow iletişim kutusuyla bağlar.</summary>
+    public Func<OnayIstegi, bool>? GuvenlikOnayiIste { get; set; }
+
+    /// <summary>🔐 Güvenlik düğmesi (v23-S29): yalnız MSSQL.</summary>
+    public bool GuvenlikGorunur => MotorMssqlMu && _profil is not null;
+
+    /// <summary>📈 Query Store sekmesi (v23-S28, K1): DB başına tek örnek; plan XML'i mevcut Plan sekmesinde açılır.</summary>
+    public void QueryStoreAc(string veritabani)
+    {
+        if (_profil is null || !MotorMssqlMu)
+            return;
+        if (Sekmeler.OfType<QueryStoreSekmesiViewModel>().FirstOrDefault(s => s.Veritabani == veritabani) is { } acik)
+        {
+            SeciliSekme = acik;
+            return;
+        }
+        var sekme = new QueryStoreSekmesiViewModel(veritabani, SunucuKomutuAsync,
+            (baslik, sql, db) => SekmeAc(baslik, sql, db),
+            (xml, baslik) =>
+            {
+                var plan = new PlanSekmesiViewModel(SQLST.Infrastructure.MssqlPlanOkuyucu.Coz(xml, false), baslik)
+                {
+                    ScriptiSekmedeAc = script => SekmeAc("onerilen-index.sql", script, veritabani),
+                };
+                Sekmeler.Add(plan);
+                SeciliSekme = plan;
+            },
+            mesaj => QueryStoreOnayiIste?.Invoke(mesaj) ?? false,
+            _profil.SaltOkunur);
+        Sekmeler.Add(sekme);
+        SeciliSekme = sekme;
+        _ = sekme.YenileAsync();
+    }
+
+    /// <summary>Query Store onayı (aç / plan zorla / kaldır) — MainWindow iletişim kutusuyla bağlar.</summary>
+    public Func<OnayIstegi, bool>? QueryStoreOnayiIste { get; set; }
+
     /// <summary>⏱ SQL Agent sekmesini açar (v23-S16) — tek örnek; yalnız MSSQL (AgentGorunur).</summary>
     public void AgentAc()
     {
@@ -595,6 +649,19 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>Agent işlem onayı (başlat/durdur/aç-kapat) — MainWindow MessageBox ile bağlar.</summary>
     public Func<OnayIstegi, bool>? AgentOnayiIste { get; set; }
+
+    /// <summary>💾 Yedek/geri yükleme köprüsü (v23-S26): istenen DB bağlamında, verilen zaman aşımıyla (0 = sınırsız —
+    /// BACKUP dakikalar sürebilir); küçük sonuçlar (bilgi, tarihçe, klasör listesi) için 5.000 satır tavanı.</summary>
+    public Task<QueryResult> SunucuKomutuAsync(string sql, string? veritabani, int timeoutSn, CancellationToken ct)
+        => _profil is null
+            ? Task.FromResult(new QueryResult { Hata = new SqlHata("Bağlantı yok.", 0, 0, 0) })
+            : _executor.ExecuteAsync(_profil, sql,
+                new ExecuteOptions
+                {
+                    VeritabaniOverride = veritabani,
+                    SatirSiniri = 5_000,
+                    KomutTimeoutSnOverride = timeoutSn,
+                }, ct);
 
     /// <summary>Agent köprüsü: her şey msdb'de (prosedürler + IS_ROLEMEMBER); 30 sn tavan.
     /// Geçmiş tek okumada tüm job'ları getirir (msdb varsayılan saklaması 1.000 satır) — tavan 5.000.</summary>
@@ -913,6 +980,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ProfilerGorunur))]
     [NotifyPropertyChangedFor(nameof(FtsGorunur))]
     [NotifyPropertyChangedFor(nameof(AgentGorunur))]
+    [NotifyPropertyChangedFor(nameof(GuvenlikGorunur))]
     private bool _motorMssqlMu = true;
 
     /// <summary>Bağlı bir profil var mı (v22-S3: motor farkı gözetmeyen menü öğeleri için —
