@@ -795,6 +795,9 @@ public partial class MainWindow : Window // partial: GeneratedRegex
     private void GrafikPenceresiGoster(GrafikPenceresiViewModel vm)
     {
         var pencere = new GrafikPenceresi(vm, _vm.KoyuTema) { Owner = this };
+        // SQL kutusu ana editörle aynı: IntelliSense, Ctrl+F, tema, F5 / Ctrl+Enter (kullanıcı 14 Eki)
+        SadeEditorKur(pencere.Editor, _ => vm.CalistirCommand);
+        pencere.Closed += (_, _) => _editorler.Remove(pencere.Editor);
         PencereGoster(pencere);
     }
 
@@ -1313,8 +1316,17 @@ public partial class MainWindow : Window // partial: GeneratedRegex
     /// F5 / Ctrl+Enter, TextArea kısayolları gölgeleyebildiği için PreviewKeyDown ile yönlendirilir.
     /// </summary>
     private void DuzenlemeEditor_Loaded(object sender, RoutedEventArgs e)
+        => SadeEditorKur((ICSharpCode.AvalonEdit.TextEditor)sender, editor =>
+            editor.DataContext is DuzenlemeSekmesiViewModel vm ? vm.FiltreCalistirCommand : null);
+
+    /// <summary>
+    /// Ana editörün SADE alt kümesi (renklendirme + tema/seçim rengi + Ctrl+F arama + IntelliSense +
+    /// F5 / Ctrl+Enter). Edit sekmesi (v22-S4) ve 📊 Grafik penceresi (kullanıcı 14 Eki: "grafikte SQL
+    /// yazılan yeri bizim editörle aynı yap") ortak kullanır; çalıştırma komutu çağırana göre çözülür.
+    /// </summary>
+    private void SadeEditorKur(ICSharpCode.AvalonEdit.TextEditor editor,
+        Func<ICSharpCode.AvalonEdit.TextEditor, ICommand?> calistirKomutu)
     {
-        var editor = (ICSharpCode.AvalonEdit.TextEditor)sender;
         editor.SyntaxHighlighting = EditorTema.Tanim(_vm.KoyuTema);
         EditorSecimRengiUygula(editor);
 
@@ -1356,11 +1368,10 @@ public partial class MainWindow : Window // partial: GeneratedRegex
             if ((args.Key == Key.F5 && Keyboard.Modifiers == ModifierKeys.None)
                 || (args.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                if (editor.DataContext is DuzenlemeSekmesiViewModel vm
-                    && vm.FiltreCalistirCommand.CanExecute(null))
+                if (calistirKomutu(editor) is { } komut && komut.CanExecute(null))
                 {
                     args.Handled = true;
-                    vm.FiltreCalistirCommand.Execute(null);
+                    komut.Execute(null);
                 }
             }
         };
@@ -1393,6 +1404,9 @@ public partial class MainWindow : Window // partial: GeneratedRegex
                 break;
             case DuzenlemeSekmesiViewModel d:
                 veritabani = d.Veritabani;
+                break;
+            case GrafikPenceresiViewModel g:
+                veritabani = g.SeciliDb;
                 break;
             default:
                 return;

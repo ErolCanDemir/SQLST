@@ -224,6 +224,48 @@ public class GrafikPaneliStaTests
         }
     }
 
+    /// <summary>Pencerenin SQL kutusu ana editörün sade alt kümesiyle kurulur (kullanıcı 14 Eki: "bizim editörle aynı yap"):
+    /// T-SQL renklendirme, Ctrl+F arama paneli, 2 harften sonra IntelliSense listesi (SE → SELECT…).</summary>
+    [Fact]
+    public void Pencere_sql_kutusu_ana_editor_gibi_renk_arama_intellisense()
+    {
+        string tempData = Path.Combine(Path.GetTempPath(), "sqlst-grafikedit-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempData);
+        Dispatcher d = StaOrtak.Sta();
+        (MainWindow win, MainViewModel vm, _) = Kur(d, tempData);
+        try
+        {
+            d.Invoke(() =>
+            {
+                vm.GrafikPenceresiAc(null, "", "master", null, 0, "");
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(600));
+                GrafikPenceresi p = Assert.Single(Pencereler(win));
+                p.Left = -32000; p.Top = -32000;
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(300));
+                ICSharpCode.AvalonEdit.TextEditor ed = p.Editor;
+                Assert.NotNull(ed.SyntaxHighlighting);
+                Assert.Contains(ed.TextArea.DefaultInputHandler.NestedInputHandlers,
+                    h => h is ICSharpCode.AvalonEdit.Search.SearchInputHandler);
+
+                ed.Focus();
+                ed.Text = "S";
+                ed.CaretOffset = ed.Text.Length;
+                ed.TextArea.PerformTextInput("E");
+                StaOrtak.PumpUntil(() => System.Windows.Application.Current.Windows.OfType<ICSharpCode.AvalonEdit.CodeCompletion.CompletionWindow>().Any(),
+                    TimeSpan.FromSeconds(15));
+                var liste = Assert.Single(System.Windows.Application.Current.Windows.OfType<ICSharpCode.AvalonEdit.CodeCompletion.CompletionWindow>());
+                Assert.Same(p, liste.Owner);
+                Assert.Contains(liste.CompletionList.CompletionData, o => o.Text == "SELECT");
+                Assert.Equal("SE", ((GrafikPenceresiViewModel)p.DataContext).Sql);
+                liste.Close();
+            });
+        }
+        finally
+        {
+            d.Invoke(() => { foreach (Window w in win.OwnedWindows.Cast<Window>().ToList()) w.Close(); win.Close(); });
+        }
+    }
+
     /// <summary>G2 kapısı SAF: SELECT geçer; yazma/DDL/EXEC ve boş reddedilir.</summary>
     [Theory]
     [InlineData("SELECT 1", false)]
