@@ -9,7 +9,8 @@ using SQLST.App.ViewModels;
 
 namespace SQLST.App.Views;
 
-/// <summary>📊 Grafik paneli kod-arkası (v23-S24 S1): tutamaç, PNG (pano/dosya — K6), kapat, tuval genişliği.</summary>
+/// <summary>📊 Grafik paneli kod-arkası (v23-S24; v23-S30 pencereye taşındı): PNG (pano/dosya — K6), tuval genişliği,
+/// açıklamadan gizleme, grafik → grid satır seçimi (<see cref="HedefGrid"/>).</summary>
 public partial class GrafikPaneli : UserControl
 {
     /// <summary>XAML'deki ComboBox için statik liste (VM'deki ile aynı nesne).</summary>
@@ -20,36 +21,32 @@ public partial class GrafikPaneli : UserControl
         InitializeComponent();
     }
 
-    private SonucSetiGorunumu? Set => DataContext as SonucSetiGorunumu;
+    /// <summary>Çubuğa tıklayınca satırların seçileceği veri tablosu — pencere verir.</summary>
+    public DataGrid? HedefGrid { get; set; }
 
-    private void Ayirici_DragDelta(object sender, DragDeltaEventArgs e)
-    {
-        if (Set is { } set)
-            set.GrafikGenisligi = Math.Clamp(set.GrafikGenisligi - e.HorizontalChange, 300, 1800);
-    }
-
-    private void Kapat_Click(object sender, RoutedEventArgs e) => Set?.GrafikKapat();
+    /// <summary>DataContext'in Grafik'i (GrafikPenceresiViewModel).</summary>
+    private GrafikPaneliViewModel? Grafik => (DataContext as GrafikPenceresiViewModel)?.Grafik;
 
     private void Tuval_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (Set?.Grafik is { } g)
+        if (Grafik is { } g)
             g.EkranGenisligi = (int)e.NewSize.Width;
     }
 
     /// <summary>S2: açıklama öğesine tık → seri/dilim gizle-göster.</summary>
     private void Aciklama_Tik(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is AciklamaOgesi o && Set?.Grafik is { } g)
+        if (((FrameworkElement)sender).DataContext is AciklamaOgesi o && Grafik is { } g)
             g.AciklamaDegistir(o.Ad);
     }
 
-    /// <summary>S2: çubuğa/dilime/noktaya tık → aynı setin grid'inde o kategorinin satırları seçilir.</summary>
+    /// <summary>S2: çubuğa/dilime/noktaya tık → veri tablosunda o kategorinin satırları seçilir.</summary>
     private void Tuval_Tiklandi(GrafikVurusu v) => KategoriSec(v.Kategori, v.Seri);
 
     /// <summary>Grafik ↔ grid köprüsü: vuruşun satırları grid'de seçilir, ilki görünür yapılır. Dönüş: seçilen sayısı.</summary>
     public int KategoriSec(int kategori, int seri)
     {
-        if (Set?.Grafik is not { } g || GridBul() is not { } grid)
+        if (Grafik is not { } g || HedefGrid is not { } grid)
             return 0;
         (List<System.Data.DataRowView> satirlar, int toplam) = g.SatirlariBul(kategori, seri);
         grid.SelectedCells.Clear();
@@ -63,10 +60,6 @@ public partial class GrafikPaneli : UserControl
             : $"{toplam:N0} satır grid'de seçildi";
         return satirlar.Count;
     }
-
-    /// <summary>Aynı result set'in DataGrid'i: panel ile grid aynı Grid'in iki kolonudur (MainWindow şablonu).</summary>
-    private DataGrid? GridBul()
-        => (Parent as Panel)?.Children.OfType<DataGrid>().FirstOrDefault();
 
     /// <summary>Gövdeyi (tuval + açıklama) tema zemini üzerine %100 ölçekte bitmap'e çizer.</summary>
     public RenderTargetBitmap? GoruntuAl()
@@ -87,7 +80,7 @@ public partial class GrafikPaneli : UserControl
 
     private void PngKopyala_Click(object sender, RoutedEventArgs e)
     {
-        if (Set?.Grafik is not { } g || GoruntuAl() is not { } bitmap)
+        if (Grafik is not { } g || GoruntuAl() is not { } bitmap)
             return;
         // Pano paylaşımlı kaynak: pano geçmişi / başka uygulama anlık tutuyorsa OpenClipboard düşer
         // (CLIPBRD_E_CANT_OPEN) — birkaç kısa deneme, sonra dürüst mesaj.
@@ -113,7 +106,7 @@ public partial class GrafikPaneli : UserControl
 
     private void PngKaydet_Click(object sender, RoutedEventArgs e)
     {
-        if (Set?.Grafik is not { } g || GoruntuAl() is not { } bitmap)
+        if (Grafik is not { } g || GoruntuAl() is not { } bitmap)
             return;
         var diyalog = new SaveFileDialog
         {

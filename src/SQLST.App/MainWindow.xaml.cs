@@ -102,6 +102,8 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         // 🔎 FTS S4 (v23-S17): doldurma / değişiklik izleme / katalog işlemleri onayı.
         vm.FtsOnayiIste = soru => Iletisim.Sor(this, "SQLST — Full-Text", soru.Baslik, soru.Mesaj, soru.OnayMetni,
             soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
+        // 📊 Grafik penceresi (v23-S30).
+        vm.GrafikPenceresiGoster = GrafikPenceresiGoster;
         // 🔐 Güvenlik (v23-S29): rol / aç-kapat / kullanıcı / yetim onayı (tehlikeli roller kırmızı — K5).
         vm.GuvenlikOnayiIste = soru => Iletisim.Sor(this, "SQLST — Güvenlik", soru.Baslik, soru.Mesaj, soru.OnayMetni,
             soru.Tehlikeli ? IletisimTuru.Tehlike : IletisimTuru.Soru);
@@ -760,24 +762,12 @@ public partial class MainWindow : Window // partial: GeneratedRegex
 
         try
         {
-            // 📊 S2 "rapora dönüştür": açık grafik panelleri PNG olarak tablonun üstüne gömülür.
-            var grafikler = new Dictionary<int, string>();
-            for (int i = 0; i < sekme.SonucSetleri.Count; i++)
-            {
-                SonucSetiGorunumu set = sekme.SonucSetleri[i];
-                if (!set.GrafikAcik || GrafikPaneliBul(this, set) is not { } panel || panel.GoruntuAl() is not { } bitmap)
-                    continue;
-                var kodlayici = new PngBitmapEncoder();
-                kodlayici.Frames.Add(BitmapFrame.Create(bitmap));
-                using var ms = new MemoryStream();
-                kodlayici.Save(ms);
-                grafikler[i] = Convert.ToBase64String(ms.ToArray());
-            }
+            // 📊 Grafikli rapor v23-S30'dan beri grafik penceresinin "📄 Rapor" düğmesinde.
             string html = HtmlRaporYazici.Yaz(
                 _profil?.Sunucu ?? "-", sekme.SecilenVeritabani, sekme.SonCalisanSql,
                 sekme.SureMetni,
                 [.. sekme.SonucSetleri.Select(s => (s.Baslik, s.Tablo))],
-                DateTime.Now, grafikler);
+                DateTime.Now);
             await HtmlRaporYazici.DosyayaYazAsync(html, diyalog.FileName);
             _vm.Durum = $"HTML raporu kaydedildi: {Path.GetFileName(diyalog.FileName)}";
         }
@@ -787,28 +777,25 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         }
     }
 
-    /// <summary>Set'in grafik panelini görsel ağaçta bulur (DataContext eşleşmesi) — rapora gömme için.</summary>
-    internal static GrafikPaneli? GrafikPaneliBul(DependencyObject kok, SonucSetiGorunumu set)
-    {
-        int n = VisualTreeHelper.GetChildrenCount(kok);
-        for (int i = 0; i < n; i++)
-        {
-            DependencyObject c = VisualTreeHelper.GetChild(kok, i);
-            if (c is GrafikPaneli p && ReferenceEquals(p.DataContext, set))
-                return p;
-            if (GrafikPaneliBul(c, set) is { } bulunan)
-                return bulunan;
-        }
-        return null;
-    }
-
-    /// <summary>📊 Grafik (v23-S24): paneli aç/kapat — YALNIZ bu düğme açar (K8), set başına.</summary>
+    /// <summary>📊 Grafik (v23-S30 — kullanıcı 14 Eki: "ayrı bir ekrana alalım, farklı bir pencereden açılsın"): sonucun
+    /// verisi ve sekmenin SQL'iyle dolu grafik penceresi açar. Ana grid değişmez; birden çok pencere açılabilir.</summary>
     private void GrafikAc_Click(object sender, RoutedEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is not SonucSetiGorunumu set)
+        if (((FrameworkElement)sender).DataContext is not SonucSetiGorunumu set || SekmeVmBul(sender) is not SorguSekmesiViewModel sekme)
             return;
-        if (set.GrafikAcik) set.GrafikKapat();
-        else set.GrafikAc();
+        int sira = sekme.SonucSetleri.ToList().IndexOf(set);
+        _vm.GrafikPenceresiAc(sekme.Baslik, sekme.SonCalisanSql ?? "", sekme.SecilenVeritabani, set.Tablo, Math.Max(0, sira), sekme.SureMetni);
+    }
+
+    /// <summary>📊 Grafik (v23-S30): sol menü — boş grafik penceresi (sorgu yazılıp çalıştırılır).</summary>
+    private void GrafikRail_Click(object sender, RoutedEventArgs e)
+        => _vm.GrafikPenceresiAc(null, "", (_vm.SeciliSekme as SorguSekmesiViewModel)?.SecilenVeritabani, null, 0, "");
+
+    /// <summary>Grafik penceresini gösterir (MainViewModel köprüsü).</summary>
+    private void GrafikPenceresiGoster(GrafikPenceresiViewModel vm)
+    {
+        var pencere = new GrafikPenceresi(vm, _vm.KoyuTema) { Owner = this };
+        PencereGoster(pencere);
     }
 
     // ---- Kısayol kılavuzu (F1 / üst şerit düğmesi) ----

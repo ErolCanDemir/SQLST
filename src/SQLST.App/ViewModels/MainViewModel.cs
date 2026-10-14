@@ -993,7 +993,31 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(TeshisGorunur))]
     [NotifyPropertyChangedFor(nameof(TopluAktarGorunur))]
     [NotifyPropertyChangedFor(nameof(LogAnalizGorunur))]
+    [NotifyPropertyChangedFor(nameof(GrafikGorunur))]
     private bool _motorMongoMu;
+
+    /// <summary>📊 Grafik rail düğmesi (v23-S30, G4): bağlı ve SQL motoru (Mongo'da grafik penceresi yok).</summary>
+    public bool GrafikGorunur => _profil is not null && !MotorMongoMu;
+
+    /// <summary>Grafik penceresini gösteren görünüm köprüsü — MainWindow bağlar.</summary>
+    public Action<GrafikPenceresiViewModel>? GrafikPenceresiGoster { get; set; }
+
+    /// <summary>
+    /// 📊 Grafik penceresi (v23-S30 — kullanıcı 14 Eki): sonuçtan (veri + SQL dolu) ya da rail'den (boş) açılır. Pencere
+    /// kendi bağlantısıyla koşar (G3: ExecuteAsync her çağrıda ayrı bağlantı — sekmenin oturumuna/#temp'ine dokunmaz) ve
+    /// yalnız SELECT çalıştırır (G2, pencere VM'inde).
+    /// </summary>
+    public void GrafikPenceresiAc(string? kaynakBaslik, string sql, string? veritabani, System.Data.DataTable? tablo, int setSirasi, string sureMetni)
+    {
+        if (_profil is not { } profil || MotorMongoMu)
+            return;
+        var vm = new GrafikPenceresiViewModel(profil.Ad, profil.Sunucu, profil.Motor, [.. VeritabaniAdlari], veritabani,
+            sql, tablo, setSirasi, sureMetni, kaynakBaslik,
+            (q, db, ct) => _executor.ExecuteAsync(profil, q,
+                new ExecuteOptions { VeritabaniOverride = db, SatirSiniri = 100_000 }, ct),
+            () => [.. Sekmeler.OfType<SorguSekmesiViewModel>().Select(s => (s.Baslik, s.Belge.Text))]);
+        GrafikPenceresiGoster?.Invoke(vm);
+    }
 
     /// <summary>
     /// Script üretimli özellik üçlüsünün (🔎 Veri Arama · 🕸 Kayıt Haritası · INSERT örneği)
@@ -2516,6 +2540,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ProfilerGorunur));
         OnPropertyChanged(nameof(FtsGorunur));
         OnPropertyChanged(nameof(AgentGorunur));
+        OnPropertyChanged(nameof(GuvenlikGorunur));
+        OnPropertyChanged(nameof(GrafikGorunur));
         MotorMssqlMu = profil.Motor == MotorTuru.Mssql;
         MotorMongoMu = profil.Motor == MotorTuru.Mongo;
         MotorScriptDestekli = profil.Motor is not MotorTuru.Mongo; // SQL ailesinin dördü (madde 3: Oracle dahil)

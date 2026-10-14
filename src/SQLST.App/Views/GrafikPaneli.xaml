@@ -3,12 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:SQLST.App.Converters"
              xmlns:views="clr-namespace:SQLST.App.Views"
-             Width="{Binding GrafikGenisligi}"
-             Visibility="{Binding GrafikAcik, Converter={StaticResource BoolGorunurluk}}"
              AutomationProperties.AutomationId="GrafikPaneli">
-    <!-- 📊 Sonuçtan grafik paneli (v23-S24 S1 — docs/12-grafik-arastirma.md, mockup docs/mockup/sonuc-grafik.html).
-         DataContext = SonucSetiGorunumu; seçimler Grafik (GrafikPaneliViewModel) üzerinde. Grid'in SAĞINDA (K1),
-         yalnız 📊 düğmesiyle açılır (K8); sol kenardaki tutamaçla genişler. Çizim GrafikTuvali (elle, K2). -->
+    <!-- 📊 Grafik paneli (v23-S24; v23-S30: grid yanından GRAFİK PENCERESİNE taşındı — kullanıcı 14 Eki "ayrı bir ekrana
+         alalım"). DataContext = Grafik özelliği taşıyan sahip (GrafikPenceresiViewModel); seçimler Grafik
+         (GrafikPaneliViewModel) üzerinde. Çizim GrafikTuvali (elle, K2). Satır seçimi için hedef grid HedefGrid ile verilir. -->
     <UserControl.Resources>
         <conv:EnumEsit x:Key="EnumEsit" />
         <conv:SeriRengi x:Key="SeriRengi" />
@@ -27,29 +25,16 @@
     </UserControl.Resources>
 
     <DockPanel Background="{DynamicResource PencereZeminFircasi}">
-        <!-- sol tutamaç: genişlik ayarı -->
-        <Thumb DockPanel.Dock="Left" Width="6" Cursor="SizeWE" DragDelta="Ayirici_DragDelta"
-               AutomationProperties.AutomationId="GrafikAyirici">
-            <Thumb.Template>
-                <ControlTemplate TargetType="Thumb">
-                    <Border Background="{DynamicResource PanelZeminFircasi}"
-                            BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="1,0,1,0" />
-                </ControlTemplate>
-            </Thumb.Template>
-        </Thumb>
-
-        <!-- üst: tür çipleri + PNG + kapat -->
+        <!-- üst: tür çipleri + PNG -->
         <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="0,0,0,1" Padding="8,6">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Content="⧉ PNG" Style="{StaticResource MiniDugme}" Margin="0,0,4,0" Click="PngKopyala_Click"
                             ToolTip="Grafiği görüntü olarak panoya kopyalar (e-postaya / Word'e yapıştırın)"
                             AutomationProperties.AutomationId="BtnGrafikPngKopyala" />
-                    <Button Content="↓ PNG" Style="{StaticResource MiniDugme}" Margin="0,0,4,0" Click="PngKaydet_Click"
+                    <Button Content="↓ PNG" Style="{StaticResource MiniDugme}" Click="PngKaydet_Click"
                             ToolTip="Grafiği PNG dosyasına kaydeder"
                             AutomationProperties.AutomationId="BtnGrafikPngKaydet" />
-                    <Button Content="✕" Style="{StaticResource MiniDugme}" Click="Kapat_Click" ToolTip="Grafik panelini kapat"
-                            AutomationProperties.AutomationId="BtnGrafikKapat" />
                 </StackPanel>
                 <WrapPanel VerticalAlignment="Center">
                     <RadioButton Content="▮ Çubuk" Style="{StaticResource TurCipi}" AutomationProperties.AutomationId="CipCubuk"

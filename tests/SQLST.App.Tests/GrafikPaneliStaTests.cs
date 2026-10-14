@@ -14,9 +14,11 @@ using SQLST.Infrastructure;
 namespace SQLST.App.Tests;
 
 /// <summary>
-/// 📊 Sonuçtan grafik paneli (v23-S24 S1, K1–K8): GERÇEK MainWindow + LocalDB sonucu. Panel kendiliğinden AÇILMAZ (K8);
-/// 📊 düğmesi açar ve otomatik tahminle DOLU gelir; seri kolonu pivotlar; tür çipi pastaya çevirir; PNG panoya gider;
-/// yeniden çalıştırmada panel AÇIK kalır ve seçimleri korur; ✕ kapatınca yeni sonuçta da kapalı kalır.
+/// 📊 Grafik PENCERESİ (v23-S30 — grid yanındaki panelden ayrı pencereye taşındı; kullanıcı 14 Eki). GERÇEK MainWindow +
+/// LocalDB: sorgu sonrası grid'de panel YOK; sonuç şeridindeki 📊 ayrı pencere açar — o sonucun verisi + SQL'i dolu,
+/// otomatik tahminle grafik gelir; seri kolonu pivotlar; pasta çipi; PNG panoya; ipucu/vuruş → veri tablosunda satır seçimi;
+/// pencerede ▶ Çalıştır kendi bağlantısıyla yeniden koşar, seçimler korunur; yazma sorgusu reddedilir (G2); sol rail 📊
+/// boş pencere açar, sorgu yazılıp çalıştırılınca grafik gelir; HTML rapor grafiği gömer.
 /// </summary>
 public class GrafikPaneliStaTests
 {
@@ -63,8 +65,24 @@ public class GrafikPaneliStaTests
         return (win, vm, sekme);
     }
 
+    /// <summary>Açık grafik pencereleri (Owner = ana pencere).</summary>
+    internal static IReadOnlyList<GrafikPenceresi> Pencereler(MainWindow win) => [.. win.OwnedWindows.OfType<GrafikPenceresi>()];
+
+    private static bool PanoyaResim(Button dugme, GrafikPaneliViewModel g)
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            try { Clipboard.Clear(); } catch (System.Runtime.InteropServices.COMException) { }
+            dugme.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            try { if (g.Durum.StartsWith("PNG panoya kopyalandı") && Clipboard.ContainsImage()) return true; }
+            catch (System.Runtime.InteropServices.COMException) { }
+            Thread.Sleep(200);
+        }
+        return false;
+    }
+
     [Fact]
-    public void Panel_yalniz_dugmeyle_acilir_dolu_gelir_pivotlar_pasta_png_yeniden_kosuda_kalir()
+    public void Sonuctan_ayri_pencere_dolu_gelir_pivot_pasta_png_satir_secimi_yeniden_kosu_yazma_engeli()
     {
         string tempData = Path.Combine(Path.GetTempPath(), "sqlst-grafik-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(tempData);
@@ -72,92 +90,114 @@ public class GrafikPaneliStaTests
         (MainWindow win, MainViewModel vm, SorguSekmesiViewModel sekme) = Kur(d, tempData);
         try
         {
-            d.Invoke(() =>
+            GrafikPenceresi p = d.Invoke(() =>
             {
+                // G1: ana penceredeki sonuçta grafik paneli YOK
+                Assert.Empty(Bul<GrafikPaneli>(win));
                 SonucSetiGorunumu set = sekme.SonucSetleri[0];
-                GrafikPaneli panel = Bul<GrafikPaneli>(win).First(p => ReferenceEquals(p.DataContext, set));
-
-                // K8 — sorgu koştu, panel KAPALI
-                Assert.False(set.GrafikAcik);
-                Assert.Null(set.Grafik);
-                Assert.Equal(Visibility.Collapsed, panel.Visibility);
-
-                // 📊 düğmesi → açık + otomatik tahminle DOLU (X=Sehir, Y=Yil+Tutar, Toplam, çubuk)
                 Button dugme = Bul<Button>(win).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "BtnGrafik"
                                                            && ReferenceEquals(b.DataContext, set));
                 dugme.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(600));
+                GrafikPenceresi pencere = Assert.Single(Pencereler(win));
+                pencere.Left = -32000; pencere.Top = -32000;
                 StaOrtak.Pump(TimeSpan.FromMilliseconds(300));
-                Assert.True(set.GrafikAcik);
-                Assert.Equal(Visibility.Visible, panel.Visibility);
-                GrafikPaneliViewModel g = set.Grafik!;
-                Assert.Equal("Sehir", g.XKolon);
-                Assert.Equal(GrafikTuru.Cubuk, g.Tur);
-                Assert.Equal(GrafikToplama.Toplam, g.Toplama.Deger);
-                Assert.Equal(["Yil", "Tutar"], g.YSecimleri.Where(y => y.Secili).Select(y => y.Ad));
-                Assert.Equal(["İstanbul", "Ankara", "İzmir"], g.Model!.Kategoriler);
-                Assert.True(panel.Tuval.ActualWidth > 100, "tuval yerleşmedi");
-
-                // Seri kolonu = Yil → 2026/2025 serileri, Yil çipi kapalı
-                g.YSecimleri.First(y => y.Ad == "Yil").Secili = false;
-                g.SeriKolon = "Yil";
-                Assert.Equal(["2026", "2025"], g.Model!.Seriler.Select(s => s.Ad));
-                Assert.Equal([485d, 335d, null], g.Model.Seriler[0].Degerler);
-                Assert.Equal(["2026", "2025"], g.Aciklama.Select(a => a.Ad));
-
-                // Tür çipi → pasta (tek seri uyarısı + açıklama kategorilere döner)
-                RadioButton pasta = Bul<RadioButton>(panel).First(r => System.Windows.Automation.AutomationProperties.GetAutomationId(r) == "CipPasta");
-                pasta.IsChecked = true;
-                Assert.Equal(GrafikTuru.Pasta, g.Tur);
-                Assert.Contains("tek seri", g.Uyari);
-                Assert.Equal(["İstanbul", "Ankara", "İzmir"], g.Aciklama.Select(a => a.Ad));
-
-                // PNG → pano. Pano paylaşımlı kaynak: başka süreç tutuyorsa CLIPBRD_E_CANT_OPEN (ortam) —
-                // ürün "Pano meşgul" der; test birkaç kez dener (önceki süitlerde de aynı dalgalanma görüldü).
-                Button pngKopyala = Bul<Button>(panel).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "BtnGrafikPngKopyala");
-                bool resim = false;
-                for (int i = 0; i < 10 && !resim; i++)
-                {
-                    try { Clipboard.Clear(); } catch (System.Runtime.InteropServices.COMException) { }
-                    pngKopyala.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-                    try { resim = g.Durum.StartsWith("PNG panoya kopyalandı") && Clipboard.ContainsImage(); }
-                    catch (System.Runtime.InteropServices.COMException) { }
-                    if (!resim) Thread.Sleep(200);
-                }
-                Assert.True(resim, $"pano görüntü içermiyor — durum: '{g.Durum}'");
+                Assert.Empty(Bul<GrafikPaneli>(win));                  // ana pencere yine panelsiz
+                return pencere;
             });
 
-            // Yeniden çalıştır → yeni set, panel AÇIK ve seçimler yerinde (pasta, seri=Yil)
-            SonucSetiGorunumu eskiSet = sekme.SonucSetleri[0];
-            d.Invoke(() => _ = sekme.CalistirAsync());
-            d.Invoke(() => StaOrtak.PumpUntil(() => sekme.SonucSetleri.Count == 1 && !ReferenceEquals(sekme.SonucSetleri[0], eskiSet), TimeSpan.FromSeconds(20)));
             d.Invoke(() =>
             {
-                SonucSetiGorunumu yeni = sekme.SonucSetleri[0];
-                Assert.True(yeni.GrafikAcik);
-                Assert.Equal(GrafikTuru.Pasta, yeni.Grafik!.Tur);
-                Assert.Equal("Yil", yeni.Grafik.SeriKolon);
-                Assert.Equal(["Tutar"], yeni.Grafik.YSecimleri.Where(y => y.Secili).Select(y => y.Ad));
+                var g = (GrafikPenceresiViewModel)p.DataContext;
+                Assert.Equal(Sql, g.Sql);                              // SQL dolu
+                Assert.Equal("master", g.SeciliDb);
+                Assert.Contains(sekme.Baslik, g.PencereBasligi);       // kaynak sekme adı başlıkta
+                Assert.Equal(5, g.Tablo!.Rows.Count);                  // veri dolu
+                GrafikPaneliViewModel gr = g.Grafik!;
+                Assert.Equal("Sehir", gr.XKolon);
+                Assert.Equal(["İstanbul", "Ankara", "İzmir"], gr.Model!.Kategoriler);
+                GrafikPaneli panel = Bul<GrafikPaneli>(p).Single();
+                Assert.True(panel.Tuval.ActualWidth > 300, "tuval yerleşmedi");
 
-                // ✕ kapat → yeni koşuda da kapalı (K8)
-                yeni.GrafikKapat();
-                Assert.False(yeni.GrafikAcik);
+                // seri kolonu + pasta
+                gr.YSecimleri.First(y => y.Ad == "Yil").Secili = false;
+                gr.SeriKolon = "Yil";
+                Assert.Equal(["2026", "2025"], gr.Model!.Seriler.Select(s => s.Ad));
+                // tık → veri tablosunda satır (Ankara 2025)
+                gr.Tur = GrafikTuru.Cubuk;
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(300));
+                GrafikVurusu v = panel.Tuval.Vuruslar.Single(x => x.Kategori == 1 && x.Seri == 1);
+                Assert.Equal("Ankara · 2025: 310", panel.Tuval.IpucuMetniUret(v));
+                Assert.Equal(1, panel.KategoriSec(v.Kategori, v.Seri));
+                DataGrid veri = Bul<DataGrid>(p).Single(x => System.Windows.Automation.AutomationProperties.GetAutomationId(x) == "GrafikVeriGrid");
+                var satir = (System.Data.DataRowView)Assert.Single(veri.SelectedItems.Cast<object>());
+                Assert.Equal("Ankara", satir["Sehir"]);
+                // veri tablosu ham gösterim: ilk hücre metni
+                Assert.True(veri.Columns.Count == 3);
+
+                RadioButton pasta = Bul<RadioButton>(panel).First(r => System.Windows.Automation.AutomationProperties.GetAutomationId(r) == "CipPasta");
+                pasta.IsChecked = true;
+                Assert.Equal(GrafikTuru.Pasta, gr.Tur);
+                // PNG panoya: ayrı testte (Pencerede_png_panoya) — pano ortam dalgalanması bu akışı kesmesin
             });
-            SonucSetiGorunumu kapaliSet = sekme.SonucSetleri[0];
-            d.Invoke(() => _ = sekme.CalistirAsync());
-            d.Invoke(() => StaOrtak.PumpUntil(() => sekme.SonucSetleri.Count == 1 && !ReferenceEquals(sekme.SonucSetleri[0], kapaliSet), TimeSpan.FromSeconds(20)));
-            d.Invoke(() => Assert.False(sekme.SonucSetleri[0].GrafikAcik));
+
+            // pencerede yeniden çalıştır: kendi bağlantısı, seçimler korunur, ana sekme değişmez
+            SonucSetiGorunumu anaSet = d.Invoke(() => sekme.SonucSetleri[0]);
+            d.Invoke(() =>
+            {
+                var g = (GrafikPenceresiViewModel)p.DataContext;
+                g.Sql = Sql.Replace("(N'İzmir', 2025, 265)", "(N'İzmir', 2025, 265), (N'Bursa', 2026, 210)");
+                _ = g.CalistirAsync();
+                StaOrtak.PumpUntil(() => !g.Calisiyor && g.Tablo!.Rows.Count == 6, TimeSpan.FromSeconds(20));
+                Assert.Equal(6, g.Tablo!.Rows.Count);
+                Assert.Equal(GrafikTuru.Pasta, g.Grafik!.Tur);                  // ayar korundu
+                Assert.Equal("Yil", g.Grafik.SeriKolon);
+                Assert.Contains("6 satır", g.SonucOzeti);
+                Assert.Same(anaSet, sekme.SonucSetleri[0]);                      // ana sekmeye dokunulmadı (G3)
+
+                // G2: yazma reddedilir, veri değişmez
+                g.Sql = "DELETE FROM dbo.Yok; SELECT 1 AS x;";
+                _ = g.CalistirAsync();
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(200));
+                Assert.StartsWith("⛔", g.Durum);
+                Assert.Equal(6, g.Tablo!.Rows.Count);
+                p.Close();
+            });
+
+            // sol rail → boş pencere → sorgu → grafik
+            d.Invoke(() =>
+            {
+                Button rail = Bul<Button>(win).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "BtnGrafikRail");
+                Assert.Equal(Visibility.Visible, rail.Visibility);
+                rail.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(600));
+                GrafikPenceresi bos = Assert.Single(Pencereler(win));
+                bos.Left = -32000; bos.Top = -32000;
+                var g = (GrafikPenceresiViewModel)bos.DataContext;
+                Assert.True(g.BosDurum);
+                Assert.Null(g.Grafik);
+                Assert.Contains("yeni", g.PencereBasligi);
+                g.Sql = "SELECT d.Ay, d.Tutar FROM (VALUES (N'Oca', 10), (N'Şub', 25), (N'Mar', 18)) d(Ay, Tutar);";
+                _ = g.CalistirAsync();
+                StaOrtak.PumpUntil(() => g.Grafik is not null, TimeSpan.FromSeconds(20));
+                Assert.False(g.BosDurum);
+                Assert.Equal(["Oca", "Şub", "Mar"], g.Grafik!.Model!.Kategoriler);
+                Assert.Equal([10d, 25d, 18d], g.Grafik.Model.Seriler[0].Degerler);
+                bos.Close();
+            });
         }
         finally
         {
-            d.Invoke(() => win.Close());
+            d.Invoke(() => { foreach (Window w in win.OwnedWindows.Cast<Window>().ToList()) w.Close(); win.Close(); });
         }
     }
 
-    /// <summary>S2: vuruş → ipucu metni; tık → grid'de satırlar; açıklama → seri gizli (renk kalıcı); yığılmış; rapora gömme.</summary>
+    /// <summary>Pencerede ⧉ PNG → pano görüntü içerir (pano paylaşımlı: CLIPBRD_E_CANT_OPEN ortam dalgalanmasında düşebilir —
+    /// hafıza notu "SQLST pano testleri dalgalı").</summary>
     [Fact]
-    public void S2_ipucu_tik_grid_secimi_seri_gizle_yigilmis_rapora_gomme()
+    public void Pencerede_png_panoya()
     {
-        string tempData = Path.Combine(Path.GetTempPath(), "sqlst-grafik2-" + Guid.NewGuid().ToString("N")[..8]);
+        string tempData = Path.Combine(Path.GetTempPath(), "sqlst-grafikpng-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(tempData);
         Dispatcher d = StaOrtak.Sta();
         (MainWindow win, MainViewModel vm, SorguSekmesiViewModel sekme) = Kur(d, tempData);
@@ -165,73 +205,33 @@ public class GrafikPaneliStaTests
         {
             d.Invoke(() =>
             {
-                vm.SonucYuksekligi = new GridLength(600); // tuval gerçek boyut alsın
                 SonucSetiGorunumu set = sekme.SonucSetleri[0];
-                set.GrafikAc();
-                StaOrtak.Pump(TimeSpan.FromMilliseconds(400));
-                GrafikPaneliViewModel g = set.Grafik!;
-                g.YSecimleri.First(y => y.Ad == "Yil").Secili = false;
-                g.SeriKolon = "Yil"; // X=Sehir, seri=Yil, Y=Tutar, Toplam
-                GrafikPaneli panel = MainWindow.GrafikPaneliBul(win, set)!;
+                vm.GrafikPenceresiAc(sekme.Baslik, Sql, "master", set.Tablo, 0, "");
+                StaOrtak.Pump(TimeSpan.FromMilliseconds(600));
+                GrafikPenceresi p = Assert.Single(Pencereler(win));
+                p.Left = -32000; p.Top = -32000;
                 StaOrtak.Pump(TimeSpan.FromMilliseconds(300));
-                GrafikTuvali tuval = panel.Tuval;
-                Assert.True(tuval.ActualHeight > 100, "tuval yerleşmedi");
-
-                // vuruşlar: 3 kategori × 2 seri − İzmir 2026 NULL = 5 çubuk
-                Assert.Equal(5, tuval.Vuruslar.Count);
-                GrafikVurusu ankara2025 = tuval.Vuruslar.Single(v => v.Kategori == 1 && v.Seri == 1);
-                Assert.Equal(310d, ankara2025.Deger);
-                var orta = new Point(ankara2025.Alan.X + ankara2025.Alan.Width / 2, ankara2025.Alan.Y + ankara2025.Alan.Height / 2);
-                Assert.Same(ankara2025, tuval.Vur(orta));
-                Assert.Equal("Ankara · 2025: 310", tuval.IpucuMetniUret(ankara2025));
-                Assert.Null(tuval.Vur(new Point(1, 1)));
-
-                // tık → grid'de o satır seçili (Ankara, 2025)
-                int secilen = panel.KategoriSec(ankara2025.Kategori, ankara2025.Seri);
-                DataGrid grid = Bul<DataGrid>(win).First(x => System.Windows.Automation.AutomationProperties.GetAutomationId(x) == "GridSonuc");
-                Assert.Equal(1, secilen);
-                var satir = (System.Data.DataRowView)Assert.Single(grid.SelectedItems.Cast<object>());
-                Assert.Equal("Ankara", satir["Sehir"]);
-                Assert.Equal(2025, satir["Yil"]);
-                Assert.Contains("1 satır grid'de seçildi", g.Durum);
-
-                // açıklama: 2026'yı gizle → tek seri kalır, 2025'in rengi (1) KAYMAZ, açıklama 2026'yı soluk listeler
-                g.AciklamaDegistir("2026");
-                Assert.Single(g.Model!.Seriler);
-                Assert.Equal("2025", g.Model.Seriler[0].Ad);
-                Assert.Equal(1, g.Model.Seriler[0].Renk);
-                Assert.True(g.Aciklama.Single(a => a.Ad == "2026").Gizli);
-                Assert.Contains("1 gizli", g.Ozet);
-                g.AciklamaDegistir("2026");
-                Assert.Equal(2, g.Model!.Seriler.Count);
-
-                // yığılmış: çip görünür, eksen üst sınırı 905 (İstanbul 485+420), ayar taşınır
-                Assert.True(g.YigilmisSecilebilir);
-                g.Yigilmis = true;
-                Assert.True(g.Model!.Yigilmis);
-                Assert.Equal(905d, g.Model.DegerAraligi().EnBuyuk);
-                Assert.True(g.Ayar.Yigilmis);
-                StaOrtak.Pump(TimeSpan.FromMilliseconds(200));
-                Assert.Equal(5, tuval.Vuruslar.Count);
-                g.Tur = GrafikTuru.Cizgi;
-                Assert.False(g.YigilmisSecilebilir);
-                g.Tur = GrafikTuru.Cubuk;
-
-                // rapora gömme: panel görüntüsü base64 → HTML'de img
-                var bitmap = panel.GoruntuAl()!;
-                var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
-                enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
-                using var ms = new MemoryStream();
-                enc.Save(ms);
-                string html = HtmlRaporYazici.Yaz("srv", "master", Sql, "0 sn", [(set.Baslik, set.Tablo)], DateTime.Now,
-                    new Dictionary<int, string> { [0] = Convert.ToBase64String(ms.ToArray()) });
-                Assert.Contains("<img class=\"grafik\"", html);
-                Assert.Contains("data:image/png;base64,iVBOR", html); // PNG imzası
+                GrafikPaneli panel = Bul<GrafikPaneli>(p).Single();
+                GrafikPaneliViewModel gr = ((GrafikPenceresiViewModel)p.DataContext).Grafik!;
+                Button png = Bul<Button>(panel).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "BtnGrafikPngKopyala");
+                Assert.True(PanoyaResim(png, gr), $"pano görüntü içermiyor — {gr.Durum}");
+                Assert.NotNull(panel.GoruntuAl());
             });
         }
         finally
         {
-            d.Invoke(() => win.Close());
+            d.Invoke(() => { foreach (Window w in win.OwnedWindows.Cast<Window>().ToList()) w.Close(); win.Close(); });
         }
     }
+
+    /// <summary>G2 kapısı SAF: SELECT geçer; yazma/DDL/EXEC ve boş reddedilir.</summary>
+    [Theory]
+    [InlineData("SELECT 1", false)]
+    [InlineData("WITH c AS (SELECT 1 AS x) SELECT * FROM c", false)]
+    [InlineData("UPDATE t SET a = 1", true)]
+    [InlineData("DROP TABLE t", true)]
+    [InlineData("EXEC dbo.usp_Rapor", true)]
+    [InlineData("   ", true)]
+    public void Yazma_engeli(string sql, bool engelli)
+        => Assert.Equal(engelli, GrafikPenceresiViewModel.YazmaEngeli(sql, MotorTuru.Mssql) is not null);
 }

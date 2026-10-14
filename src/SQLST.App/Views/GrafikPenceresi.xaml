@@ -1,0 +1,105 @@
+<Window x:Class="SQLST.App.Views.GrafikPenceresi"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+        xmlns:conv="clr-namespace:SQLST.App.Converters"
+        xmlns:views="clr-namespace:SQLST.App.Views"
+        Title="{Binding PencereBasligi}" Width="1280" Height="820" MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="True"
+        Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}"
+        FontFamily="Segoe UI" FontSize="12.5">
+    <!-- 📊 Grafik penceresi (v23-S30 — mockup docs/mockup/grafik-penceresi.html ONAYLI). Üst: DB · ▶ Çalıştır · SQL'i al ·
+         oto-yenile · rapor · SQL'i gizle; SQL editörü; orta: GrafikPaneli (v23-S24/S25 aynen); alt: açılır veri tablosu. -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolGorunurluk" />
+        <conv:TersBool x:Key="TersBool" />
+        <conv:TersBoolGorunurluk x:Key="TersBoolGorunurluk" />
+        <conv:MetinVarsaGorunur x:Key="MetinVarsaGorunur" />
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding CalistirCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <!-- durum çubuğu -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource DurumCubuguZeminFircasi}" Padding="12,4">
+            <DockPanel TextElement.Foreground="{DynamicResource DurumCubuguMetinFircasi}" TextElement.FontSize="11.5">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding SonKosu}" Margin="18,0,0,0" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Grafik.Ozet}" Margin="18,0,0,0" />
+                <TextBlock Text="{Binding Durum}" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="LblGrafikPencereDurum" />
+            </DockPanel>
+        </Border>
+
+        <!-- üst şerit -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource PanelZeminFircasi}" BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="0,0,0,1" Padding="10,6">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="📄 Rapor (HTML)" Padding="10,3" Margin="0,0,6,0" Click="Rapor_Click" IsEnabled="{Binding VeriVar}"
+                            ToolTip="Sorgu + grafik + tablo tek HTML dosyasında" AutomationProperties.AutomationId="BtnGrafikRapor" />
+                    <Button Padding="10,3" Command="{Binding SqlGorunurDegistirCommand}" AutomationProperties.AutomationId="BtnGrafikSqlGizle">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Content" Value="▴ SQL'i gizle" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SqlGorunur}" Value="False"><Setter Property="Content" Value="▾ SQL'i göster" /></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <ComboBox MinWidth="150" ItemsSource="{Binding Veritabanlari}" SelectedItem="{Binding SeciliDb}" Margin="0,0,8,0"
+                              IsEnabled="{Binding Calisiyor, Converter={StaticResource TersBool}}" AutomationProperties.AutomationId="CmbGrafikDb" />
+                    <Button Content="▶ Çalıştır (F5)" Padding="12,3" Margin="0,0,6,0" Style="{StaticResource BirincilDugme}" Command="{Binding CalistirCommand}"
+                            IsEnabled="{Binding Calisiyor, Converter={StaticResource TersBool}}" AutomationProperties.AutomationId="BtnGrafikCalistir" />
+                    <Button Content="■ Durdur" Padding="10,3" Margin="0,0,6,0" Command="{Binding DurdurCommand}"
+                            Visibility="{Binding Calisiyor, Converter={StaticResource BoolGorunurluk}}" AutomationProperties.AutomationId="BtnGrafikDurdur" />
+                    <Button x:Name="SqlAlDugmesi" Content="SQL'i al ▾" Padding="10,3" Margin="0,0,10,0" Click="SqlAl_Click"
+                            ToolTip="Açık bir sorgu sekmesindeki SQL'i buraya al" AutomationProperties.AutomationId="BtnGrafikSqlAl" />
+                    <CheckBox Style="{StaticResource AnahtarKutusu}" IsChecked="{Binding OtoYenile}" VerticalAlignment="Center"
+                              Content="Oto-yenile" Foreground="{DynamicResource SolukMetinFircasi}" AutomationProperties.AutomationId="ChkGrafikOtoYenile" />
+                    <TextBox Text="{Binding OtoYenileSaniye, UpdateSourceTrigger=PropertyChanged}" Width="38" Margin="6,0,2,0" Padding="3,1"
+                             VerticalAlignment="Center" AutomationProperties.AutomationId="TxtGrafikOtoSn" />
+                    <TextBlock Text="sn" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{DynamicResource SolukMetinFircasi}" />
+                    <Border Style="{StaticResource SonucRozeti}" Tag="ok" VerticalAlignment="Center"
+                            Visibility="{Binding SonucOzeti, Converter={StaticResource MetinVarsaGorunur}}">
+                        <TextBlock Text="{Binding SonucOzeti}" FontSize="11.5" AutomationProperties.AutomationId="LblGrafikSonucOzeti" />
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- SQL editörü -->
+        <avalon:TextEditor x:Name="Editor" DockPanel.Dock="Top" Height="120" ShowLineNumbers="True"
+                           FontFamily="Cascadia Mono, Consolas" FontSize="13" Padding="4"
+                           Background="{DynamicResource EditorZeminFircasi}" Foreground="{DynamicResource EditorMetinFircasi}"
+                           LineNumbersForeground="{DynamicResource SolukMetinFircasi}"
+                           BorderThickness="0,0,0,1" BorderBrush="{DynamicResource KenarFircasi}"
+                           Visibility="{Binding SqlGorunur, Converter={StaticResource BoolGorunurluk}}"
+                           AutomationProperties.AutomationId="GrafikSqlEditor" />
+
+        <!-- veri tablosu (açılır) -->
+        <Expander DockPanel.Dock="Bottom" IsExpanded="{Binding VeriGorunur}" Visibility="{Binding VeriVar, Converter={StaticResource BoolGorunurluk}}"
+                  BorderBrush="{DynamicResource KenarFircasi}" BorderThickness="0,1,0,0" Padding="0" AutomationProperties.AutomationId="GrafikVeriExpander">
+            <Expander.Header>
+                <TextBlock><Run Text="Veri" FontWeight="SemiBold" /><Run Text="  — çubuğa tıklayınca buradaki satırlar seçilir" Foreground="{DynamicResource SolukMetinFircasi}" FontSize="11.5" /></TextBlock>
+            </Expander.Header>
+            <DataGrid x:Name="VeriGrid" ItemsSource="{Binding Tablo.DefaultView}" AutoGenerateColumns="True" IsReadOnly="True" Height="200"
+                      CanUserAddRows="False" HeadersVisibility="All" RowHeaderWidth="14" SelectionMode="Extended" SelectionUnit="FullRow"
+                      EnableRowVirtualization="True" EnableColumnVirtualization="True" AutoGeneratingColumn="VeriGrid_AutoGeneratingColumn"
+                      AutomationProperties.AutomationId="GrafikVeriGrid" />
+        </Expander>
+
+        <!-- grafik / boş durum -->
+        <Grid>
+            <views:GrafikPaneli x:Name="Panel" Visibility="{Binding VeriVar, Converter={StaticResource BoolGorunurluk}}" />
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding BosDurum, Converter={StaticResource BoolGorunurluk}}">
+                <TextBlock Text="Henüz veri yok" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Text="Sorgu çalışınca kolonlar otomatik tahmin edilir; türü ve X/Y'yi üstten değiştirirsiniz." Margin="0,6,0,0"
+                           Foreground="{DynamicResource SolukMetinFircasi}" HorizontalAlignment="Center" />
+                <TextBlock Text="Yalnız SELECT — yazma/DDL/EXEC bu pencerede çalışmaz." Margin="0,4,0,0" FontSize="11.5"
+                           Foreground="{DynamicResource SolukMetinFircasi}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>

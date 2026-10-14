@@ -289,6 +289,12 @@
                                 Visibility="{Binding AgentGorunur, Converter={StaticResource BoolGorunurluk}}"
                                 ToolTip="SQL Server Agent: job'ların durumu, son/sonraki koşu, geçmiş ve hata mesajları; başlat · durdur · aç/kapat · script olarak al"
                                 AutomationProperties.AutomationId="BtnAgent" />
+                        <!-- 📊 Grafik (v23-S30): sorgu yaz → çalıştır → grafik; ayrı pencere. Tüm SQL motorları (Mongo hariç). -->
+                        <Button Style="{StaticResource RayOgesi}" Background="#0D9488" Tag="{StaticResource Ikon.Grafik}"
+                                Content="Grafik" Click="GrafikRail_Click"
+                                Visibility="{Binding GrafikGorunur, Converter={StaticResource BoolGorunurluk}}"
+                                ToolTip="Grafik penceresi: sorguyu yazın, çalıştırın, sonucu çubuk · yatay · çizgi · alan · pasta olarak görün (yalnız SELECT)"
+                                AutomationProperties.AutomationId="BtnGrafikRail" />
                         <!-- 🔐 Güvenlik (v23-S29, K1): YALNIZ MSSQL — login'ler, kullanıcılar, roller, yetkiler -->
                         <Button Style="{StaticResource RayOgesi}" Background="#B45309" Tag="{StaticResource Ikon.Kilit}"
                                 Content="Güvenlik" Click="Guvenlik_Click"
@@ -4382,10 +4388,10 @@
                                                                         <!-- Rapor + Tümünü dışa aktar (sekme düzeyi eylemler) kopya/dışa-aktar
                                                                              butonlarıyla TEK SIRADA (kullanıcı isteği 2026-07-23). Bağlamalar
                                                                              tab VM'ine RelativeSource ile ulaşır (buradaki DataContext = SonucSetiGorunumu). -->
-                                                                        <!-- 📊 Grafik (v23-S24): paneli grid'in SAĞINDA açar — yalnız bu düğme açar (K8). -->
+                                                                        <!-- 📊 Grafik (v23-S24; v23-S30 ayrı PENCERE): bu sonucun verisi + SQL ile grafik penceresi açar. -->
                                                                         <Button Content="📊 Grafik" Style="{StaticResource MiniDugme}" Margin="0,0,4,0"
                                                                                 Click="GrafikAc_Click"
-                                                                                ToolTip="Bu sonucu grafiğe çevir: çubuk · yatay · çizgi · alan · pasta — X/Y kolonları ve toplama panelde (tekrar tıklayınca kapanır)"
+                                                                                ToolTip="Bu sonucu ayrı grafik penceresinde aç: çubuk · yatay · çizgi · alan · pasta — X/Y, toplama, PNG/rapor; pencerede sorguyu yeniden çalıştırabilirsiniz"
                                                                                 AutomationProperties.AutomationId="BtnGrafik" />
                                                                         <Button Content="📄 Rapor" Style="{StaticResource MiniDugme}" Margin="0,0,4,0"
                                                                                 Click="HtmlRapor_Click"
@@ -4440,14 +4446,6 @@
                                                                      (sahadaki imzanın aynısı), canlıyken 0,9 sn + 24 satır görseli. MaxHeight,
                                                                      Height NaN kalsa bile ölçümü bağlar — hangi yol bozarsa bozsun
                                                                      sanallaştırma yaşar; FallbackValue da bağlama hatasında sonlu değer verir. -->
-                                                                <!-- 📊 v23-S24: grid + (açıksa) sağda grafik paneli. Panel kolonu Auto: kapalıyken
-                                                                     Collapsed → 0 px; genişliği paneldeki tutamaç verir (GridSplitter'ın yerel değer
-                                                                     tuzağı yok). Grid yüksekliği DataGrid'in orantılı yüksekliğinden gelir. -->
-                                                                <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                </Grid.ColumnDefinitions>
                                                                 <DataGrid x:Name="SetGrid" ItemsSource="{Binding Gorunum}"
                                                                           IsReadOnly="True" AutoGenerateColumns="True"
                                                                           VerticalAlignment="Top" MaxHeight="1600"
@@ -4526,8 +4524,6 @@
                                                                         </ContextMenu>
                                                                     </DataGrid.ContextMenu>
                                                                 </DataGrid>
-                                                                <views:GrafikPaneli Grid.Column="1" />
-                                                                </Grid>
                                                             </DockPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
