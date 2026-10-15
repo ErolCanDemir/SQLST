@@ -1,7 +1,7 @@
 <Window x:Class="SQLST.App.Views.AktarimPenceresi"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SQLST — Paket Aktarım" Width="940" Height="680"
+        Title="SQLST — Paket Aktarım" Width="1040" Height="700"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="True"
         Background="{DynamicResource PencereZeminFircasi}" Foreground="{DynamicResource MetinFircasi}">
     <DockPanel Margin="14">
@@ -75,7 +75,7 @@
                         <ColumnDefinition Width="90" /><ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Bağlantı:" VerticalAlignment="Center" Margin="0,3" />
                     <!-- ItemTemplate (DisplayMemberPath değil): temadaki combo şablonunun seçim kutusu
@@ -100,9 +100,30 @@
                               SelectionChanged="HedefDb_Secildi"
                               AutomationProperties.AutomationId="CmbAktHedefDb" />
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Tablo:" VerticalAlignment="Center" Margin="0,3" />
-                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="HedefTablo" Margin="0,3"
-                              SelectionChanged="TabloSecimi_Degisti"
-                              AutomationProperties.AutomationId="CmbAktHedefTablo" />
+                    <!-- v23-S32 "yeni tabloya aktar" (SELECT INTO gibi): kutu YAZILABİLİR — listede olmayan ad
+                         = yeni tablo (kaynağın kolonlarıyla oluşturulur); var olan ad listeden seçilir. -->
+                    <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,3">
+                        <Border DockPanel.Dock="Right" x:Name="YeniRozet" Visibility="Collapsed" Margin="6,0,0,0"
+                                CornerRadius="9" Padding="8,2" VerticalAlignment="Center"
+                                Background="#FFEBD9" ToolTip="Bu ad hedefte yok — aktarım tabloyu kaynağın kolonlarıyla oluşturup dolduracak">
+                            <TextBlock Text="YENİ — oluşturulacak" FontSize="11" FontWeight="SemiBold" Foreground="#9A3F00"
+                                       AutomationProperties.AutomationId="LblAktYeniRozet" />
+                        </Border>
+                        <ComboBox x:Name="HedefTablo" IsEditable="True" IsTextSearchEnabled="False"
+                                  SelectionChanged="TabloSecimi_Degisti"
+                                  ToolTip="Listeden seçin YA DA yeni ad yazın (ör. dbo.Siparis_2025) — yoksa oluşturulur (SELECT INTO gibi)"
+                                  AutomationProperties.AutomationId="CmbAktHedefTablo" />
+                    </DockPanel>
+                    <!-- Yeni tablo seçenekleri: PK yalnız tablo kipinde ve kaynakta PK varsa anlamlı. -->
+                    <StackPanel Grid.Row="3" Grid.Column="1" x:Name="YeniSecenekler" Orientation="Horizontal"
+                                Visibility="Collapsed" Margin="0,4,0,0">
+                        <CheckBox x:Name="PkOlustur" Content="🔑 PK'yı da oluştur" IsChecked="True" VerticalAlignment="Center"
+                                  ToolTip="Kaynağın birincil anahtarı hedefte de PRIMARY KEY olur; işaretsiz = SELECT INTO gibi yalnız kolonlar + veri"
+                                  AutomationProperties.AutomationId="ChkAktPkOlustur" />
+                        <TextBlock x:Name="YeniNot" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="11.5"
+                                   Foreground="{DynamicResource SolukMetinFircasi}"
+                                   Text="identity / index / varsayılan taşınmaz — SELECT INTO gibi" />
+                    </StackPanel>
                 </Grid>
             </GroupBox>
         </Grid>
@@ -112,6 +133,11 @@
             <Button DockPanel.Dock="Right" x:Name="AktarDugmesi" Content="📦 Aktar" Padding="18,6"
                     Style="{StaticResource BirincilDugme}" Click="Aktar_Click"
                     AutomationProperties.AutomationId="BtnAktar" />
+            <!-- v23-S32: yeni tablo kipinde CREATE/SELECT INTO script'ini rapor kutusunda gösterir (çalıştırmaz) -->
+            <Button DockPanel.Dock="Right" x:Name="ScriptGosterDugmesi" Content="📄 Script'i göster" Padding="12,6"
+                    Margin="0,0,8,0" Visibility="Collapsed" Click="ScriptGoster_Click"
+                    ToolTip="Hedefte çalışacak CREATE TABLE / SELECT INTO script'ini gösterir — incelemek ya da elle çalıştırmak için"
+                    AutomationProperties.AutomationId="BtnAktScriptGoster" />
             <Button DockPanel.Dock="Right" x:Name="DurdurDugmesi" Content="■ Durdur" Padding="12,6"
                     Margin="0,0,8,0" IsEnabled="False" Click="Durdur_Click"
                     AutomationProperties.AutomationId="BtnAktarDurdur" />
@@ -158,6 +184,18 @@
             </DockPanel>
         </Border>
 
+        <!-- v23-S32 yeni tablo kipi: eşleme yerine KOLON ÖNİZLEMESİ (kaynaktan birebir; hedef henüz yok) -->
+        <DataGrid x:Name="OnizlemeGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                  HeadersVisibility="Column" Visibility="Collapsed"
+                  AutomationProperties.AutomationId="AktarimOnizlemeGrid">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Binding="{Binding Sira}" Width="40" />
+                <DataGridTextColumn Header="Kolon" Binding="{Binding Kolon}" Width="220" />
+                <DataGridTextColumn Header="Tip (kaynaktan birebir)" Binding="{Binding Tip}" Width="180" />
+                <DataGridTextColumn Header="Null" Binding="{Binding Null}" Width="60" />
+                <DataGridTextColumn Header="Not" Binding="{Binding Not}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
         <!-- Eşleme gridi: her HEDEF kolon için kaynak seçimi (boş = aktarma) -->
         <DataGrid x:Name="EslemeGrid" AutoGenerateColumns="False" CanUserAddRows="False"
                   HeadersVisibility="Column"

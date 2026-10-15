@@ -163,6 +163,119 @@ public class AktarimPenceresiStaTests
         Assert.Contains("anahtar dışında", setYokUyari);
     }
 
+    /// <summary>
+    /// v23-S32 "yeni tabloya aktar": hedef kutusuna listede OLMAYAN ad yazılınca kip yeni tabloya döner — eşleme
+    /// gridi gizlenir, kolon önizlemesi kaynaktan birebir gelir (PK notlu), rozet/PK kutusu/Script düğmesi görünür,
+    /// düğme "Oluştur ve aktar", temizle/UPSERT kapanır; Script'i göster SELECT INTO + PK üretir (aynı sunucu).
+    /// Var olan ad yalnız adla ("MusteriYedek") yazılırsa eşleme kipi kalır ve durum "ZATEN VAR" der.
+    /// </summary>
+    [Fact]
+    public void Yeni_ad_yazinca_kip_yeni_tabloya_doner_var_olan_ad_eslemede_kalir()
+    {
+        (bool yeniKip, int esleme, IReadOnlyList<(int, string, string, string)> onizleme, string dugme,
+            bool temizleAcik, bool pkAcik, string script, bool varOlanKip, string varOlanDurum) = StaOrtak.Sta().Invoke(() =>
+        {
+            (AktarimPenceresi w, _) = PencereKur();
+            ((ComboBox)w.FindName("HedefProfil")).SelectedIndex = 0;
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(300));
+            ((ComboBox)w.FindName("HedefDb")).SelectedIndex = 0;
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(300));
+            ((ComboBox)w.FindName("KaynakTablo")).SelectedIndex = 0;
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(150));
+
+            var hedefTablo = (ComboBox)w.FindName("HedefTablo");
+            hedefTablo.Text = "dbo.Musteri_2025"; // listede yok → yeni
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(200));
+            bool yeni = w.YeniTabloMu;
+            var onizlemeSatirlari = w.Onizleme.Select(o => (o.Sira, o.Kolon, o.Tip, o.Not)).ToList();
+            string dugmeMetni = (string)((Button)w.FindName("AktarDugmesi")).Content;
+            bool temizle = ((CheckBox)w.FindName("OnceTemizle")).IsEnabled;
+            bool pk = ((CheckBox)w.FindName("PkOlustur")).IsEnabled;
+            bool gridGizli = ((DataGrid)w.FindName("EslemeGrid")).Visibility != System.Windows.Visibility.Visible;
+            Assert.True(gridGizli);
+            Assert.Equal(System.Windows.Visibility.Visible, ((DataGrid)w.FindName("OnizlemeGrid")).Visibility);
+            Assert.Equal(System.Windows.Visibility.Visible, ((Button)w.FindName("ScriptGosterDugmesi")).Visibility);
+
+            ((Button)w.FindName("ScriptGosterDugmesi")).RaiseEvent(
+                new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            string scriptMetni = ((TextBox)w.FindName("Rapor")).Text;
+
+            // Yalnız ad: var olan dbo.MusteriYedek'e çarpar → eşleme kipi + açık uyarı.
+            hedefTablo.Text = "MusteriYedek";
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(200));
+            bool varOlan = w.YeniTabloMu;
+            string durum = ((TextBlock)w.FindName("Durum")).Text;
+            int eslemeSayisi = w.Satirlar.Count;
+
+            w.Close();
+            return (yeni, eslemeSayisi, (IReadOnlyList<(int, string, string, string)>)onizlemeSatirlari, dugmeMetni,
+                temizle, pk, scriptMetni, varOlan, durum);
+        });
+
+        Assert.True(yeniKip);
+        Assert.Equal([(1, "Id", "int", "🔑 PK (hedefte de PK)"), (2, "Ad", "nvarchar(100)", ""), (3, "Eposta", "nvarchar(200)", "")], onizleme);
+        Assert.Equal("📦 Oluştur ve aktar", dugme);
+        Assert.False(temizleAcik);
+        Assert.True(pkAcik);
+        // Kaynak "Canlı" (localdb) ile hedef "Yedek Sunucu" farklı sunucu → CREATE + akışlı script.
+        Assert.Contains("CREATE TABLE [dbo].[Musteri_2025]", script);
+        Assert.Contains("PRIMARY KEY", script);
+        Assert.Contains("SELECT [Id], [Ad], [Eposta] FROM [dbo].[Musteri]", script);
+
+        Assert.False(varOlanKip);
+        Assert.Contains("ZATEN VAR", varOlanDurum);
+        Assert.Equal(3, esleme); // dbo.MusteriYedek'in 3 kolonu eşleme gridinde
+    }
+
+    /// <summary>"💾 Tabloya kaydet" yolu (baslangicSql): Sorgu kipi + SQL dolu + kolonlar keşfedilmiş, hedef = kaynak
+    /// profil (listede yoksa eklenir) + kaynak DB seçili; sorgu kipinde PK kutusu kapalı (PK bilinemez).</summary>
+    [Fact]
+    public void Baslangic_sql_ile_sorgu_kipinde_hedef_ayni_baglanti_hazir_acilir()
+    {
+        (int kip, string sorgu, string? hedefProfilAd, string? hedefDb, string? gidenSorgu, bool yeni, bool pkAcik, int onizleme) =
+            StaOrtak.Sta().Invoke(() =>
+        {
+            StaOrtak.Birlestir("PaletAcik.xaml");
+            StaOrtak.Birlestir("Tema.xaml");
+            var kaynakProfil = new ConnectionProfile { Ad = "Canlı", Sunucu = @"(localdb)\MSSQLLocalDB" };
+            var lehceler = new LehceSaglayici(new DpapiSecretProtector());
+            var motor = new SahteAktarim(lehceler);
+            var w = new AktarimPenceresi(
+                kaynakProfil, ["HedefDb", "DigerDb"], "HedefDb",
+                _ => Task.FromResult<IReadOnlyList<SemaNesnesi>>([]),
+                new SahteProfilDeposu([new ConnectionProfile { Ad = "Yedek Sunucu", Motor = MotorTuru.Mssql }]),
+                new SahteSemaServisi(), lehceler, motor,
+                baslangicSql: "SELECT MusteriNo, Ad FROM dbo.Musteri WHERE Puan > 5")
+            {
+                WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
+                Left = -32000, Top = -32000, ShowInTaskbar = false,
+            };
+            w.Show();
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(700)); // Loaded → sıralı başlangıç kurulumu
+
+            var hedefTablo = (ComboBox)w.FindName("HedefTablo");
+            hedefTablo.Text = "dbo.Rapor_2025";
+            StaOrtak.Pump(TimeSpan.FromMilliseconds(200));
+            var sonuc = (
+                ((TabControl)w.FindName("KaynakKip")).SelectedIndex,
+                ((TextBox)w.FindName("SorguMetni")).Text,
+                (((ComboBox)w.FindName("HedefProfil")).SelectedItem as ConnectionProfile)?.Ad,
+                ((ComboBox)w.FindName("HedefDb")).SelectedItem as string,
+                motor.SonSorgu, w.YeniTabloMu, ((CheckBox)w.FindName("PkOlustur")).IsEnabled, w.Onizleme.Count);
+            w.Close();
+            return sonuc;
+        });
+
+        Assert.Equal(1, kip);
+        Assert.Equal("SELECT MusteriNo, Ad FROM dbo.Musteri WHERE Puan > 5", sorgu);
+        Assert.Equal(sorgu, gidenSorgu);          // keşif otomatik yapıldı
+        Assert.Equal("Canlı", hedefProfilAd);     // kayıtsız aktif profil listeye eklendi ve seçildi
+        Assert.Equal("HedefDb", hedefDb);
+        Assert.True(yeni);
+        Assert.False(pkAcik);                      // sorgu sonucunda PK bilinemez
+        Assert.Equal(2, onizleme);                 // MusteriNo, Ad
+    }
+
     /// <summary>Ortak pencere kurulumu: sahte köprüler + sahte keşif motoru.</summary>
     private static (AktarimPenceresi, SahteAktarim) PencereKur()
     {
@@ -197,8 +310,9 @@ public class AktarimPenceresiStaTests
     {
         Sonuc s = StaOrtak.Sta().Invoke(Kosu);
 
-        // Mongo profili listeye girmez (v12-S5'e dek).
-        Assert.Equal(1, s.HedefProfilSayisi);
+        // Mongo profili listeye girmez (v12-S5'e dek); v23-S32: kayıtsız KAYNAK profil listenin SONUNA eklenir
+        // (aynı sunucuya "Tabloya kaydet" için) → 2 profil, ilk sıra değişmez.
+        Assert.Equal(2, s.HedefProfilSayisi);
         Assert.Equal("Yedek Sunucu", s.IlkHedefProfilAd);
         // Sistem DB'leri ve view'lar hedef aday değildir.
         Assert.Equal(["HedefDb"], s.HedefDbler);

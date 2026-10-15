@@ -33,6 +33,9 @@ public enum AktarimYazmaKipi
 /// <paramref name="OnceTemizle"/> hedefi DELETE ile boşaltır (TRUNCATE değil — yetki/FK dostu) ve
 /// UI'da AÇIK ONAY ister. <paramref name="AnahtarKolonlar"/> yalnız EkleGuncelle kipinde gerekir:
 /// HEDEF kolon adlarıdır, hepsi eşlenmiş olmalı ve anahtar dışında en az bir kolon kalmalıdır.
+/// <paramref name="OnceDdl"/> (v23-S32 "yeni tablo" yolu — dosya içe aktarımın v13-S4 deseni): doluysa
+/// hedef bağlantıda, kaynak okuyucu AÇILDIKTAN sonra ve ilk satırdan önce çalıştırılır (CREATE TABLE) —
+/// kaynak sorgusu bozuksa boş tablo kalmaz. UI script'i kullanıcıya ONAYLATMADAN doldurmaz.
 /// </summary>
 public sealed record AktarimIstegi(
     ConnectionProfile Kaynak,
@@ -45,7 +48,8 @@ public sealed record AktarimIstegi(
     bool OnceTemizle = false,
     AktarimHataPolitikasi HataPolitikasi = AktarimHataPolitikasi.IlkHatadaDur,
     AktarimYazmaKipi YazmaKipi = AktarimYazmaKipi.YalnizEkle,
-    IReadOnlyList<string>? AnahtarKolonlar = null);
+    IReadOnlyList<string>? AnahtarKolonlar = null,
+    string? OnceDdl = null);
 
 /// <summary>
 /// Mongo→Mongo aktarım isteği (v12-S5, kullanıcı senaryosu: log koleksiyonunu arşiv DB'sine

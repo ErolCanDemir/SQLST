@@ -73,6 +73,21 @@ public class AktarimServisi(ILehceSaglayici lehceler)
             for (int i = 0; i < istek.Eslesmeler.Count; i++)
                 ordinaller[i] = okuyucu.GetOrdinal(istek.Eslesmeler[i].KaynakKolon);
 
+            // Yeni tablo yolu (v23-S32): onaylı CREATE TABLE — kaynak okuyucu açıldıktan SONRA (bozuk
+            // sorgu boş tablo bırakmasın), ilk satırdan önce. Hata = aktarım hiç başlamadı.
+            if (!string.IsNullOrWhiteSpace(istek.OnceDdl))
+            {
+                await using DbCommand ddl = hedef.CreateCommand();
+                ddl.CommandText = istek.OnceDdl;
+                ddl.CommandTimeout = istek.Hedef.KomutTimeoutSn;
+                try { await ddl.ExecuteNonQueryAsync(ct); }
+                catch (DbException ex)
+                {
+                    return new AktarimSonucu(false, 0, 0, 0, 0,
+                        $"Hedef tablo oluşturulamadı: {ex.Message}", sure.Elapsed, hataOrnekleri);
+                }
+            }
+
             // Önce temizle (açık onaylı): DELETE — TRUNCATE değil (yetki/FK dostu; geri alınabilir sınıf).
             // Tablo adı PARÇA PARÇA TIRNAKLI (inceleme 2026-07-30, KRİTİK): ham ad PG/Oracle'da
             // büyük-küçük katlanıp aynı adlı İKİZE (yanlış tabloya) gidebiliyordu.
@@ -220,6 +235,70 @@ public class AktarimServisi(ILehceSaglayici lehceler)
         {
             // GetOrdinal (eşleşen kolon sonuçta yok) vb. yapılandırma hataları.
             return new AktarimSonucu(false, okunan, yazilan, guncellenen, atlanan, ex.Message, sure.Elapsed, hataOrnekleri);
+        }
+    }
+
+    /// <summary>
+    /// Kestirme yol (v23-S32 "yeni tabloya aktar", aynı sunucu): ifadeler KAYNAK bağlantıda, kaynak DB
+    /// bağlamında, tek işlemde koşar — MSSQL <c>SELECT … INTO</c> / diğerleri <c>CREATE TABLE … AS</c>,
+    /// ardından isteğe bağlı PK. Veri ağdan geçmez. MSSQL/PG'de DDL işlemseldir → hata = hiçbir şey kalmaz;
+    /// MySQL/Oracle'da CTAS örtük COMMIT yapar → sonraki adım düşerse tablo DROP edilmeye çalışılır,
+    /// başarılamazsa rapor dürüstçe söyler. Dönen Okunan/Yazılan = sürücünün bildirdiği satır sayısı
+    /// (−1 bildirirse 0). Sanal: UI testi sahteler.
+    /// </summary>
+    public virtual async Task<AktarimSonucu> KestirmeAktarAsync(
+        ConnectionProfile kaynak, string? kaynakVeritabani, IReadOnlyList<string> ifadeler,
+        string hedefTamAd, CancellationToken ct)
+    {
+        var sure = Stopwatch.StartNew();
+        ILehce lehce = lehceler.Getir(kaynak.Motor);
+        try
+        {
+            await using DbConnection baglanti = lehce.BaglantiOlustur(kaynak, kaynakVeritabani, havuz: true);
+            await baglanti.OpenAsync(ct);
+            await using DbTransaction islem = await baglanti.BeginTransactionAsync(ct);
+            long satir = 0;
+            int adim = 0;
+            try
+            {
+                foreach (string sql in ifadeler)
+                {
+                    await using DbCommand komut = baglanti.CreateCommand();
+                    komut.Transaction = islem;
+                    komut.CommandText = sql;
+                    komut.CommandTimeout = kaynak.KomutTimeoutSn;
+                    int etkilenen = await komut.ExecuteNonQueryAsync(ct);
+                    if (adim == 0 && etkilenen >= 0)
+                        satir = etkilenen;
+                    adim++;
+                }
+                await islem.CommitAsync(CancellationToken.None);
+            }
+            catch (Exception ex) when (ex is DbException or OperationCanceledException)
+            {
+                try { await islem.RollbackAsync(CancellationToken.None); } catch (Exception) { }
+                string kalinti = "";
+                // Örtük COMMIT'li motorda ilk adım kalıcılaşmış olabilir → tabloyu kaldırmayı dene.
+                if (adim >= 1 && lehce.OrtukCommitYaparMi(ifadeler[0]))
+                {
+                    try
+                    {
+                        await using DbCommand drop = baglanti.CreateCommand();
+                        drop.CommandText = $"DROP TABLE {hedefTamAd}";
+                        await drop.ExecuteNonQueryAsync(CancellationToken.None);
+                    }
+                    catch (DbException) { kalinti = $" Hedef tablo {hedefTamAd} sunucuda KALDI — elle kaldırın."; }
+                }
+                bool iptal = ex is OperationCanceledException;
+                return new AktarimSonucu(false, 0, 0, 0, 0,
+                    (iptal ? "Aktarım kullanıcı tarafından iptal edildi." : $"Adım {adim + 1} başarısız: {ex.Message}") + kalinti,
+                    sure.Elapsed, [], IptalEdildi: iptal);
+            }
+            return new AktarimSonucu(true, satir, satir, 0, 0, null, sure.Elapsed, []);
+        }
+        catch (DbException ex)
+        {
+            return new AktarimSonucu(false, 0, 0, 0, 0, ex.Message, sure.Elapsed, []);
         }
     }
 

@@ -4393,6 +4393,13 @@
                                                                                 Click="GrafikAc_Click"
                                                                                 ToolTip="Bu sonucu ayrı grafik penceresinde aç: çubuk · yatay · çizgi · alan · pasta — X/Y, toplama, PNG/rapor; pencerede sorguyu yeniden çalıştırabilirsiniz"
                                                                                 AutomationProperties.AutomationId="BtnGrafik" />
+                                                                        <!-- 💾 Tabloya kaydet (v23-S32, SELECT INTO gibi): sekmenin SQL'iyle Paket Aktarım
+                                                                             "yeni tablo" kipinde açılır. Yalnız SQL ailesi (AktarimGorunur). -->
+                                                                        <Button Content="💾 Tabloya kaydet" Style="{StaticResource MiniDugme}" Margin="0,0,4,0"
+                                                                                Click="TabloyaKaydet_Click"
+                                                                                Visibility="{Binding DataContext.AktarimGorunur, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolGorunurluk}}"
+                                                                                ToolTip="Bu sorgunun sonucunu YENİ bir tabloya döker (SELECT INTO gibi): Paket Aktarım sorgu kipinde, hedef adı siz yazarsınız; aynı sunucuda tek komutla sunucu içinde"
+                                                                                AutomationProperties.AutomationId="BtnTabloyaKaydet" />
                                                                         <Button Content="📄 Rapor" Style="{StaticResource MiniDugme}" Margin="0,0,4,0"
                                                                                 Click="HtmlRapor_Click"
                                                                                 ToolTip="Sekmenin son sonucunu tek HTML dosyasına aktarır: sorgu + sunucu/DB + süre + tablolar (Ö6)"

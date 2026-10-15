@@ -787,6 +787,18 @@ public partial class MainWindow : Window // partial: GeneratedRegex
         _vm.GrafikPenceresiAc(sekme.Baslik, sekme.SonCalisanSql ?? "", sekme.SecilenVeritabani, set.Tablo, Math.Max(0, sira), sekme.SureMetni);
     }
 
+    /// <summary>💾 Tabloya kaydet (v23-S32 — kullanıcı 15 Eki: "SELECT INTO gibi"): Paket Aktarım penceresi sekmenin
+    /// SQL'iyle Sorgu kipinde, hedef = aynı bağlantı/DB, tablo adı boş ve odakta açılır.</summary>
+    private void TabloyaKaydet_Click(object sender, RoutedEventArgs e)
+    {
+        if (_profil is null || _profil.Motor == MotorTuru.Mongo || SekmeVmBul(sender) is not SorguSekmesiViewModel sekme
+            || string.IsNullOrWhiteSpace(sekme.SonCalisanSql))
+            return;
+        PencereGoster(new Views.AktarimPenceresi(_profil, _vm.LogAnalizVeritabanlari, sekme.SecilenVeritabani ?? _vm.LogAnalizAktifVeritabani,
+            _vm.LogAnalizTablolariAsync, _profilDeposu, _semaServisi, _lehceSaglayici, _aktarimServisi, baslangicSql: sekme.SonCalisanSql)
+            { Owner = this });
+    }
+
     /// <summary>📊 Grafik (v23-S30): sol menü — boş grafik penceresi (sorgu yazılıp çalıştırılır).</summary>
     private void GrafikRail_Click(object sender, RoutedEventArgs e)
         => _vm.GrafikPenceresiAc(null, "", (_vm.SeciliSekme as SorguSekmesiViewModel)?.SecilenVeritabani, null, 0, "");
